@@ -541,11 +541,24 @@ function processFlightItem(row) {
   // Helper to read field values from preserved divs - always reads fresh from DOM
   const readFieldValue = (fieldName) => {
     // Always query fresh from the row to get current values
-    // First try to find by data attribute
-    let fieldDiv = row.querySelector(`[data-aue-prop="${fieldName}"]`);
+    // First try to find by data attribute - check both div and p tags
+    let fieldElement = row.querySelector(`[data-aue-prop="${fieldName}"]`);
     
-    if (!fieldDiv) {
-      // Fallback to index-based
+    // If not found, try finding p tag with data-aue-prop directly
+    if (!fieldElement) {
+      fieldElement = row.querySelector(`p[data-aue-prop="${fieldName}"]`);
+    }
+    
+    // If still not found, try to find parent div containing p with data-aue-prop
+    if (!fieldElement) {
+      const pWithProp = row.querySelector(`p[data-aue-prop="${fieldName}"]`);
+      if (pWithProp && pWithProp.parentElement) {
+        fieldElement = pWithProp.parentElement;
+      }
+    }
+    
+    // Fallback to index-based
+    if (!fieldElement) {
       const index = ['image', 'from', 'fromName', 'to', 'toName', 'departureTime', 'arrivalTime', 'price', 'class'].indexOf(fieldName);
       if (index >= 0) {
         const children = Array.from(row.children);
@@ -559,7 +572,7 @@ function processFlightItem(row) {
             continue; // Skip display elements
           }
           if (fieldIndex === index) {
-            fieldDiv = child;
+            fieldElement = child;
             break;
           }
           fieldIndex++;
@@ -567,37 +580,47 @@ function processFlightItem(row) {
       }
     }
     
-    if (fieldDiv) {
+    if (fieldElement) {
       // For image field, check for link, img, or picture
       if (fieldName === 'image') {
-        const link = fieldDiv.querySelector('a');
+        const link = fieldElement.querySelector('a');
         if (link && (link.href || link.textContent?.trim())) {
           return link.href || link.textContent?.trim() || '';
         }
-        const img = fieldDiv.querySelector('img');
+        const img = fieldElement.querySelector('img');
         if (img && (img.src || img.getAttribute('data-src'))) {
           return img.src || img.getAttribute('data-src') || '';
         }
-        const picture = fieldDiv.querySelector('picture');
+        const picture = fieldElement.querySelector('picture');
         if (picture) {
           const picImg = picture.querySelector('img');
           if (picImg) return picImg.src || picImg.getAttribute('data-src') || '';
         }
         // Fallback to text content
-        return fieldDiv.textContent?.trim() || '';
+        return fieldElement.textContent?.trim() || '';
       }
-      // For text fields - check p tag first (most common)
-      const p = fieldDiv.querySelector('p');
-      if (p && p.textContent?.trim()) {
-        return p.textContent.trim();
+      
+      // For text fields - check if fieldElement itself is a p tag with data-aue-prop
+      if (fieldElement.tagName === 'P' && fieldElement.getAttribute('data-aue-prop') === fieldName) {
+        return fieldElement.textContent?.trim() || '';
       }
+      
+      // Check for p tag inside (most common)
+      const p = fieldElement.querySelector('p');
+      if (p && (p.getAttribute('data-aue-prop') === fieldName || !p.getAttribute('data-aue-prop'))) {
+        if (p.textContent?.trim()) {
+          return p.textContent.trim();
+        }
+      }
+      
       // Check for nested div
-      const nestedDiv = fieldDiv.querySelector('div:not([data-aue-prop])');
+      const nestedDiv = fieldElement.querySelector('div:not([data-aue-prop])');
       if (nestedDiv && nestedDiv.textContent?.trim()) {
         return nestedDiv.textContent.trim();
       }
+      
       // Check direct text content (but only if no p or nested div)
-      const directText = fieldDiv.textContent?.trim();
+      const directText = fieldElement.textContent?.trim();
       if (directText && !p && !nestedDiv) {
         return directText;
       }
@@ -678,7 +701,7 @@ function processFlightItem(row) {
   
   // Hide original field divs but keep them in DOM for UE (they stay as children)
   originalChildren.forEach((child) => {
-    // Only hide if it's a field div (has data-aue-prop or is in expected position)
+    // Only hide if it's a field div (has data-aue-prop or contains p with data-aue-prop)
     // Skip display elements that we're about to add
     if (child.classList.contains('flight-card-image') || 
         child.classList.contains('flight-card-details') || 
@@ -686,14 +709,26 @@ function processFlightItem(row) {
       return; // Don't hide display elements
     }
     
-    const isFieldDiv = child.getAttribute('data-aue-prop') || 
+    // Check if this is a field div - either has data-aue-prop or contains p with data-aue-prop
+    const hasDataAueProp = child.getAttribute('data-aue-prop');
+    const hasPWithDataAueProp = child.querySelector('p[data-aue-prop]') || child.querySelector('[data-aue-prop]');
+    const isFieldDiv = hasDataAueProp || hasPWithDataAueProp || 
                       (originalChildren.indexOf(child) < 9 && !child.classList.contains('flight-card'));
+    
     if (isFieldDiv) {
       child.style.display = 'none';
       child.setAttribute('data-aue-hidden', 'true'); // Mark as hidden for UE
+      
+      // Also hide p tags with data-aue-prop inside
+      const pWithProp = child.querySelectorAll('p[data-aue-prop]');
+      pWithProp.forEach(p => {
+        p.style.display = 'none';
+      });
+      
       // Ensure field divs have proper data-aue-type (not component)
       if (!child.getAttribute('data-aue-type')) {
-        const propName = child.getAttribute('data-aue-prop');
+        const propName = child.getAttribute('data-aue-prop') || 
+                        child.querySelector('p[data-aue-prop]')?.getAttribute('data-aue-prop');
         if (propName === 'image') {
           child.setAttribute('data-aue-type', 'reference');
         } else {
@@ -728,7 +763,8 @@ function processFlightItem(row) {
   // Initial display update
   updateDisplay();
   
-  // Set up MutationObserver to sync changes from UE to display
+  // Set up MutationObserver to sync changes from UE to display (only needed in author mode)
+  // On live, content is static so observer is optional but harmless
   const observer = new MutationObserver(() => {
     updateDisplay();
   });
@@ -930,8 +966,28 @@ export default async function decorate(block) {
   const flightItems = [];
   const processedItems = new Set(); // Track processed items to prevent duplicates
   
-  // Find flight items (starting from index 7, after config divs)
-  for (let i = 7; i < children.length; i++) {
+  // Find flight items - check all children (not just after index 7)
+  // First, identify config divs (flights block model fields)
+  const configIndices = new Set();
+  children.forEach((child, index) => {
+    const isConfigField = child.getAttribute('data-aue-prop') === 'title' ||
+                         child.getAttribute('data-aue-prop') === 'subtitle' ||
+                         child.getAttribute('data-aue-prop') === 'defaultFrom' ||
+                         child.getAttribute('data-aue-prop') === 'defaultTo' ||
+                         child.getAttribute('data-aue-prop') === 'defaultDate' ||
+                         child.getAttribute('data-aue-prop') === 'apiUrl' ||
+                         child.getAttribute('data-aue-prop') === 'flightImages';
+    if (isConfigField || (index < 7 && !child.getAttribute('data-aue-model'))) {
+      configIndices.add(index);
+    }
+  });
+  
+  // Find flight items - check all children
+  for (let i = 0; i < children.length; i++) {
+    // Skip config fields
+    if (configIndices.has(i)) {
+      continue;
+    }
     const child = children[i];
     
     // Skip if it's a display element (already processed)
@@ -952,7 +1008,9 @@ export default async function decorate(block) {
     // Check if this child is a flight item
     const hasFlightModel = child.getAttribute('data-aue-model') === 'flight';
     const hasFlightData = child.querySelector('[data-aue-prop="from"]') || 
-                         child.querySelector('[data-aue-prop="to"]');
+                         child.querySelector('[data-aue-prop="to"]') ||
+                         child.querySelector('p[data-aue-prop="from"]') ||
+                         child.querySelector('p[data-aue-prop="to"]');
     
     // Only process if it's explicitly marked as a flight item OR has flight data fields
     // Don't process based on child count alone as config fields might match
