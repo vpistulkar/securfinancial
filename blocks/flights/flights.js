@@ -253,6 +253,95 @@ function handleFlightSelect(flight) {
   // window.location.href = `/book-flight?id=${flight.id}`;
 }
 
+// Create a default flight item structure in the DOM (editable)
+function createDefaultFlightItem(block) {
+  const defaultFlightData = SAMPLE_FLIGHTS['JFK-TQO'][0];
+  
+  // Create a flight item div with the structure that Universal Editor expects
+  const flightItem = document.createElement('div');
+  flightItem.setAttribute('data-aue-model', 'flight');
+  flightItem.setAttribute('data-aue-type', 'component');
+  
+  // Create field divs in the order expected by the model
+  // 0: image
+  const imageDiv = createElement('div', '');
+  imageDiv.setAttribute('data-aue-prop', 'image');
+  const imageLink = createElement('a', '');
+  imageLink.href = defaultFlightData.image;
+  imageLink.textContent = defaultFlightData.image;
+  imageDiv.appendChild(imageLink);
+  flightItem.appendChild(imageDiv);
+  
+  // 1: from
+  const fromDiv = createElement('div', '');
+  fromDiv.setAttribute('data-aue-prop', 'from');
+  const fromP = createElement('p', '');
+  fromP.textContent = defaultFlightData.from;
+  fromDiv.appendChild(fromP);
+  flightItem.appendChild(fromDiv);
+  
+  // 2: fromName
+  const fromNameDiv = createElement('div', '');
+  fromNameDiv.setAttribute('data-aue-prop', 'fromName');
+  const fromNameP = createElement('p', '');
+  fromNameP.textContent = defaultFlightData.fromName;
+  fromNameDiv.appendChild(fromNameP);
+  flightItem.appendChild(fromNameDiv);
+  
+  // 3: to
+  const toDiv = createElement('div', '');
+  toDiv.setAttribute('data-aue-prop', 'to');
+  const toP = createElement('p', '');
+  toP.textContent = defaultFlightData.to;
+  toDiv.appendChild(toP);
+  flightItem.appendChild(toDiv);
+  
+  // 4: toName
+  const toNameDiv = createElement('div', '');
+  toNameDiv.setAttribute('data-aue-prop', 'toName');
+  const toNameP = createElement('p', '');
+  toNameP.textContent = defaultFlightData.toName;
+  toNameDiv.appendChild(toNameP);
+  flightItem.appendChild(toNameDiv);
+  
+  // 5: departureTime
+  const departureTimeDiv = createElement('div', '');
+  departureTimeDiv.setAttribute('data-aue-prop', 'departureTime');
+  const departureTimeP = createElement('p', '');
+  departureTimeP.textContent = defaultFlightData.departureTime;
+  departureTimeDiv.appendChild(departureTimeP);
+  flightItem.appendChild(departureTimeDiv);
+  
+  // 6: arrivalTime
+  const arrivalTimeDiv = createElement('div', '');
+  arrivalTimeDiv.setAttribute('data-aue-prop', 'arrivalTime');
+  const arrivalTimeP = createElement('p', '');
+  arrivalTimeP.textContent = defaultFlightData.arrivalTime;
+  arrivalTimeDiv.appendChild(arrivalTimeP);
+  flightItem.appendChild(arrivalTimeDiv);
+  
+  // 7: price
+  const priceDiv = createElement('div', '');
+  priceDiv.setAttribute('data-aue-prop', 'price');
+  const priceP = createElement('p', '');
+  priceP.textContent = defaultFlightData.price.toString();
+  priceDiv.appendChild(priceP);
+  flightItem.appendChild(priceDiv);
+  
+  // 8: class
+  const classDiv = createElement('div', '');
+  classDiv.setAttribute('data-aue-prop', 'class');
+  const classP = createElement('p', '');
+  classP.textContent = defaultFlightData.class;
+  classDiv.appendChild(classP);
+  flightItem.appendChild(classDiv);
+  
+  // Append to block (after config divs)
+  block.appendChild(flightItem);
+  
+  return flightItem;
+}
+
 // Process a flight item directly from the DOM structure
 function processFlightItem(row) {
   // Transform the row into a flight card structure
@@ -562,49 +651,49 @@ export default async function decorate(block) {
     }
   }
   
-  // If authorable flight items exist, display them
-  if (flightItems.length > 0) {
-    // Add title and subtitle if configured
-    if (config.title || config.subtitle) {
-      const titleSection = createElement('div', 'flight-results-header');
-      if (config.title) {
-        const title = createElement('h2', 'flight-results-title');
-        title.textContent = config.title;
-        titleSection.appendChild(title);
-      }
-      if (config.subtitle) {
-        const subtitle = createElement('p', 'flight-results-subtitle');
-        subtitle.textContent = config.subtitle;
-        titleSection.appendChild(subtitle);
-      }
-      // Insert before first flight item
-      if (flightItems[0]) {
-        block.insertBefore(titleSection, flightItems[0]);
-      } else {
-        block.appendChild(titleSection);
-      }
-    }
-    
-    // Add disclaimer
-    const disclaimer = createElement('p', 'flight-results-disclaimer');
-    disclaimer.textContent = 'Presented fares are per passenger, including fees and taxes. Additional services and amenities may vary per flight or change in time.';
-    if (flightItems[0]) {
-      block.insertBefore(disclaimer, flightItems[0]);
-    } else {
-      block.appendChild(disclaimer);
-    }
-    
-    // Wrap flight items in a container (move them)
-    const resultsList = createElement('div', 'flight-results-list');
-    flightItems.forEach(item => {
-      resultsList.appendChild(item);
-    });
-    block.appendChild(resultsList);
-    return;
+  // If no authorable flight items exist, create a default one (JFK-TQO)
+  if (flightItems.length === 0) {
+    const defaultFlight = createDefaultFlightItem(block);
+    processFlightItem(defaultFlight);
+    flightItems.push(defaultFlight);
   }
   
-  // No authorable flight items - show default sample flight (JFK-TQO)
-  const defaultFlights = SAMPLE_FLIGHTS['JFK-TQO'] || [];
-  displayFlightResults(defaultFlights, 'JFK', 'TQO', config.defaultDate, config);
+  // Display authorable flight items
+  // Add title and subtitle if configured
+  if (config.title || config.subtitle) {
+    const titleSection = createElement('div', 'flight-results-header');
+    if (config.title) {
+      const title = createElement('h2', 'flight-results-title');
+      title.textContent = config.title;
+      titleSection.appendChild(title);
+    }
+    if (config.subtitle) {
+      const subtitle = createElement('p', 'flight-results-subtitle');
+      subtitle.textContent = config.subtitle;
+      titleSection.appendChild(subtitle);
+    }
+    // Insert before first flight item
+    if (flightItems[0]) {
+      block.insertBefore(titleSection, flightItems[0]);
+    } else {
+      block.appendChild(titleSection);
+    }
+  }
+  
+  // Add disclaimer
+  const disclaimer = createElement('p', 'flight-results-disclaimer');
+  disclaimer.textContent = 'Presented fares are per passenger, including fees and taxes. Additional services and amenities may vary per flight or change in time.';
+  if (flightItems[0]) {
+    block.insertBefore(disclaimer, flightItems[0]);
+  } else {
+    block.appendChild(disclaimer);
+  }
+  
+  // Wrap flight items in a container (move them)
+  const resultsList = createElement('div', 'flight-results-list');
+  flightItems.forEach(item => {
+    resultsList.appendChild(item);
+  });
+  block.appendChild(resultsList);
 }
 
