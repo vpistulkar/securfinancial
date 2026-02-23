@@ -113,7 +113,7 @@ function formatDate(date) {
 }
 
 // Display flight results
-function displayFlightResults(flights, from, to, date) {
+function displayFlightResults(flights, from, to, date, config = {}) {
   const block = document.querySelector('.flights');
   if (!block) return;
   
@@ -130,12 +130,23 @@ function displayFlightResults(flights, from, to, date) {
     return;
   }
   
-  // Title
+  // Title - use authorable title if provided, otherwise generate default
   const title = createElement('h2', 'flight-results-title');
-  const fromAirport = AIRPORTS.find((a) => a.code === from);
-  const toAirport = AIRPORTS.find((a) => a.code === to);
-  title.textContent = `One-Way connections from ${fromAirport?.city || from} to ${toAirport?.city || to}`;
+  if (config.title) {
+    title.textContent = config.title;
+  } else {
+    const fromAirport = AIRPORTS.find((a) => a.code === from);
+    const toAirport = AIRPORTS.find((a) => a.code === to);
+    title.textContent = `One-Way connections from ${fromAirport?.city || from} to ${toAirport?.city || to}`;
+  }
   block.appendChild(title);
+  
+  // Subtitle - use authorable subtitle if provided
+  if (config.subtitle) {
+    const subtitle = createElement('p', 'flight-results-subtitle');
+    subtitle.textContent = config.subtitle;
+    block.appendChild(subtitle);
+  }
   
   // Disclaimer
   const disclaimer = createElement('p', 'flight-results-disclaimer');
@@ -145,12 +156,16 @@ function displayFlightResults(flights, from, to, date) {
   // Results list
   const resultsList = createElement('div', 'flight-results-list');
   
-  flights.forEach((flight) => {
+  // Use authorable images if provided (already an array from readImageReferences)
+  const authorableImages = Array.isArray(config.flightImages) ? config.flightImages : [];
+  
+  flights.forEach((flight, index) => {
     const flightCard = createElement('div', 'flight-card');
     
     const imageContainer = createElement('div', 'flight-card-image');
     const image = createElement('img', '');
-    image.src = flight.image;
+    // Use authorable image if available, otherwise use flight's default image
+    image.src = authorableImages[index] || flight.image;
     image.alt = `${flight.toName} destination`;
     imageContainer.appendChild(image);
     
@@ -212,32 +227,75 @@ function handleFlightSelect(flight) {
 
 // Main decorate function
 export default async function decorate(block) {
-  // Clear block
-  block.innerHTML = '';
+  // Read configuration from block children (authorable fields)
+  // Block structure: each field is in a div > div > p structure
+  const readConfigValue = (index) => {
+    const div = block.querySelector(`:scope > div:nth-child(${index}) > div`);
+    return div?.textContent?.trim() || '';
+  };
+  
+  // Read all authorable fields
+  // For multi-reference fields like images, read all links/anchors
+  const readImageReferences = () => {
+    const imageDiv = block.querySelector(':scope > div:nth-child(7)');
+    if (!imageDiv) return [];
+    const links = imageDiv.querySelectorAll('a');
+    return Array.from(links).map(link => link.href || link.textContent?.trim()).filter(Boolean);
+  };
+  
+  const config = {
+    title: readConfigValue(1),
+    subtitle: readConfigValue(2),
+    defaultFrom: readConfigValue(3),
+    defaultTo: readConfigValue(4),
+    defaultDate: readConfigValue(5),
+    apiUrl: readConfigValue(6),
+    flightImages: readImageReferences(),
+  };
+  
+  // Get URL parameters (priority over authorable fields)
+  const urlParams = new URLSearchParams(window.location.search);
+  const from = urlParams.get('from') || config.defaultFrom;
+  const to = urlParams.get('to') || config.defaultTo;
+  const date = urlParams.get('date') || config.defaultDate;
+  
+  // Preserve block structure for authoring
   block.className = 'flights';
   
-  // Get URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  const from = urlParams.get('from');
-  const to = urlParams.get('to');
-  const date = urlParams.get('date');
-  
+  // If no from/to values (neither URL params nor authorable), show message
   if (!from || !to) {
+    // Hide config divs but keep them for Universal Editor
+    Array.from(block.children).forEach((child, index) => {
+      if (index >= 0 && index < 7) {
+        child.style.display = 'none';
+      }
+    });
+    
     const noParams = createElement('div', 'flight-no-results');
     noParams.innerHTML = `
       <p>Please provide flight search parameters.</p>
-      <p>Use the flight search form to find flights.</p>
+      <p>Use the flight search form to find flights, or configure default values in the block settings.</p>
       <a href="/" class="flight-back-link">← Back to Search</a>
     `;
     block.appendChild(noParams);
     return;
   }
   
+  // Hide config divs but keep them for Universal Editor
+  Array.from(block.children).forEach((child, index) => {
+    if (index >= 0 && index < 7) {
+      child.style.display = 'none';
+    }
+  });
+  
   // Get flight results based on route
   const route = `${from}-${to}`;
-  const flights = SAMPLE_FLIGHTS[route] || [];
+  let flights = SAMPLE_FLIGHTS[route] || [];
   
-  // Display results
-  displayFlightResults(flights, from, to, date);
+  // If API URL is provided, fetch from API (future enhancement)
+  // For now, use sample data
+  
+  // Display results with config
+  displayFlightResults(flights, from, to, date, config);
 }
 
