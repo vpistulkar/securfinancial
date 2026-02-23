@@ -342,16 +342,17 @@ function createDefaultFlightItem(block) {
   return flightItem;
 }
 
-// Process a flight item directly from the DOM structure (preserves UE connection)
+// Process a flight item directly from the DOM structure
 function processFlightItem(row) {
-  // Transform the row into a flight card structure while preserving UE attributes
+  // Transform the row into a flight card structure while preserving UE fields
   row.className = 'flight-card';
   
-  // Store original children and their UE attributes
+  // Store original field divs (preserve them for UE)
   const originalChildren = Array.from(row.children);
   
-  // Read field values from original structure
+  // Helper to read field values from preserved divs
   const readFieldValue = (fieldName) => {
+    // First try to find by data attribute
     const fieldDiv = row.querySelector(`[data-aue-prop="${fieldName}"]`);
     if (fieldDiv) {
       const p = fieldDiv.querySelector('p');
@@ -371,104 +372,83 @@ function processFlightItem(row) {
     return '';
   };
   
-  // Get current field values for display
-  const from = readFieldValue('from');
-  const fromName = readFieldValue('fromName');
-  const to = readFieldValue('to');
-  const toName = readFieldValue('toName');
-  const departureTime = readFieldValue('departureTime');
-  const arrivalTime = readFieldValue('arrivalTime');
-  const price = readFieldValue('price');
-  const flightClass = readFieldValue('class');
-  
-  // Get image div (preserve it)
-  let imageDiv = row.querySelector('[data-aue-prop="image"]');
-  if (!imageDiv) {
-    imageDiv = originalChildren[0];
-  }
-  
-  // Create wrapper structure but preserve original field divs
-  const imageContainer = createElement('div', 'flight-card-image');
-  if (imageDiv) {
-    // Clone image for display but keep original in DOM for UE
-    const picture = imageDiv.querySelector('picture');
-    const img = imageDiv.querySelector('img');
-    const link = imageDiv.querySelector('a');
+  // Function to update display from field values
+  const updateDisplay = () => {
+    const from = readFieldValue('from');
+    const fromName = readFieldValue('fromName');
+    const to = readFieldValue('to');
+    const toName = readFieldValue('toName');
+    const departureTime = readFieldValue('departureTime');
+    const arrivalTime = readFieldValue('arrivalTime');
+    const price = readFieldValue('price');
+    const flightClass = readFieldValue('class');
     
-    if (picture) {
-      imageContainer.appendChild(picture.cloneNode(true));
-    } else if (img) {
-      const displayImg = img.cloneNode(true);
-      imageContainer.appendChild(displayImg);
-    } else if (link) {
-      const imageUrl = link.href || link.textContent?.trim() || '';
+    // Update route
+    if (routeEl) {
+      routeEl.textContent = `${fromName || ''} (${from || ''}) to ${toName || ''} (${to || ''})`;
+    }
+    
+    // Update times
+    if (timesEl) {
+      timesEl.innerHTML = `
+        <div class="flight-time">
+          <span class="flight-airport">${from || ''}</span>
+          <span class="flight-time-value">${departureTime || ''}</span>
+        </div>
+        <div class="flight-time">
+          <span class="flight-airport">${to || ''}</span>
+          <span class="flight-time-value">${arrivalTime || ''}</span>
+        </div>
+      `;
+    }
+    
+    // Update price
+    if (priceClassEl) {
+      priceClassEl.textContent = flightClass || 'Standard';
+    }
+    if (priceEl) {
+      priceEl.textContent = price ? `$${parseFloat(price).toFixed(2)}` : '$0.00';
+    }
+    
+    // Update image
+    const imageDiv = row.querySelector('[data-aue-prop="image"]') || originalChildren[0];
+    if (imageDiv && imageContainer) {
+      const picture = imageDiv.querySelector('picture');
+      const img = imageDiv.querySelector('img');
+      const link = imageDiv.querySelector('a');
+      const imageUrl = link?.href || link?.textContent?.trim() || img?.src || picture?.querySelector('img')?.src || imageDiv.textContent?.trim() || '';
+      
       if (imageUrl) {
-        const displayImg = createElement('img', '');
-        displayImg.src = imageUrl;
-        displayImg.alt = `${toName || ''} destination`;
-        imageContainer.appendChild(displayImg);
-      }
-    } else {
-      // Get image URL from text content
-      const imageUrl = imageDiv.textContent?.trim() || imageDiv.querySelector('div')?.textContent?.trim() || '';
-      if (imageUrl) {
-        const displayImg = createElement('img', '');
-        displayImg.src = imageUrl;
-        displayImg.alt = `${toName || ''} destination`;
-        imageContainer.appendChild(displayImg);
+        const existingImg = imageContainer.querySelector('img');
+        if (existingImg) {
+          existingImg.src = imageUrl;
+        } else {
+          imageContainer.innerHTML = '';
+          const newImg = createElement('img', '');
+          newImg.src = imageUrl;
+          newImg.alt = `${toName || ''} destination`;
+          imageContainer.appendChild(newImg);
+        }
       }
     }
-  }
+  };
   
-  // Create details container with live data that updates from fields
+  // Hide original field divs but keep them in DOM for UE
+  originalChildren.forEach((child) => {
+    child.style.display = 'none';
+  });
+  
+  // Create display elements
+  const imageContainer = createElement('div', 'flight-card-image');
   const detailsContainer = createElement('div', 'flight-card-details');
-  
-  // Create route display that reads from fields
-  const route = createElement('div', 'flight-route');
-  const updateRoute = () => {
-    const f = readFieldValue('from');
-    const fn = readFieldValue('fromName');
-    const t = readFieldValue('to');
-    const tn = readFieldValue('toName');
-    route.textContent = `${fn || ''} (${f || ''}) to ${tn || ''} (${t || ''})`;
-  };
-  updateRoute();
-  
-  // Create times display that reads from fields
-  const times = createElement('div', 'flight-times');
-  const updateTimes = () => {
-    const f = readFieldValue('from');
-    const dt = readFieldValue('departureTime');
-    const t = readFieldValue('to');
-    const at = readFieldValue('arrivalTime');
-    times.innerHTML = `
-      <div class="flight-time">
-        <span class="flight-airport">${f || ''}</span>
-        <span class="flight-time-value">${dt || ''}</span>
-      </div>
-      <div class="flight-time">
-        <span class="flight-airport">${t || ''}</span>
-        <span class="flight-time-value">${at || ''}</span>
-      </div>
-    `;
-  };
-  updateTimes();
-  
-  detailsContainer.appendChild(route);
-  detailsContainer.appendChild(times);
-  
-  // Create price container with live data
+  const routeEl = createElement('div', 'flight-route');
+  const timesEl = createElement('div', 'flight-times');
   const priceContainer = createElement('div', 'flight-card-price');
-  const priceClass = createElement('div', 'flight-class');
+  const priceClassEl = createElement('div', 'flight-class');
   const priceEl = createElement('div', 'flight-price');
   
-  const updatePrice = () => {
-    const p = readFieldValue('price');
-    const fc = readFieldValue('class');
-    priceClass.textContent = fc || 'Standard';
-    priceEl.textContent = p ? `$${parseFloat(p).toFixed(2)}` : '$0.00';
-  };
-  updatePrice();
+  detailsContainer.appendChild(routeEl);
+  detailsContainer.appendChild(timesEl);
   
   const selectButton = createElement('button', 'flight-select-button', 'Select');
   selectButton.addEventListener('click', () => {
@@ -484,50 +464,21 @@ function processFlightItem(row) {
     });
   });
   
-  priceContainer.appendChild(priceClass);
+  priceContainer.appendChild(priceClassEl);
   priceContainer.appendChild(priceEl);
   priceContainer.appendChild(selectButton);
   
-  // Hide original field divs but keep them in DOM for UE (preserve data-aue-prop attributes)
-  originalChildren.forEach((child) => {
-    // Keep all field divs in the DOM but hide them - UE needs them to read/write
-    child.style.display = 'none';
-    // Ensure they stay in the row
-    if (!row.contains(child)) {
-      row.appendChild(child);
-    }
-  });
-  
-  // Assemble the card - add display elements after the hidden field divs
+  // Assemble the card (display elements after hidden field divs)
   row.appendChild(imageContainer);
   row.appendChild(detailsContainer);
   row.appendChild(priceContainer);
   
-  // Set up MutationObserver to update display when UE changes fields
+  // Initial display update
+  updateDisplay();
+  
+  // Set up MutationObserver to sync changes from UE to display
   const observer = new MutationObserver(() => {
-    updateRoute();
-    updateTimes();
-    updatePrice();
-    // Also update image if it changes
-    if (imageDiv) {
-      const picture = imageDiv.querySelector('picture');
-      const img = imageDiv.querySelector('img');
-      const link = imageDiv.querySelector('a');
-      const imageUrl = link?.href || link?.textContent?.trim() || img?.src || picture?.querySelector('img')?.src || imageDiv.textContent?.trim() || '';
-      
-      if (imageUrl && imageContainer) {
-        const existingImg = imageContainer.querySelector('img');
-        if (existingImg && existingImg.src !== imageUrl) {
-          existingImg.src = imageUrl;
-        } else if (!existingImg) {
-          const newImg = createElement('img', '');
-          newImg.src = imageUrl;
-          newImg.alt = `${toName || ''} destination`;
-          imageContainer.innerHTML = '';
-          imageContainer.appendChild(newImg);
-        }
-      }
-    }
+    updateDisplay();
   });
   
   // Observe all field divs for changes
@@ -536,13 +487,15 @@ function processFlightItem(row) {
       observer.observe(child, {
         childList: true,
         subtree: true,
-        characterData: true
+        characterData: true,
+        attributes: true
       });
     }
   });
   
-  // Store observer on the row so it persists
+  // Store observer and update function on the row
   row._flightObserver = observer;
+  row._updateDisplay = updateDisplay;
 }
 
 // Read flight item from a block child (row)
