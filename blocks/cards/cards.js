@@ -77,25 +77,35 @@ export default function decorate(block) {
       }
     });
     
-    // First, remove compact-style from ALL elements to prevent it from being on wrong elements
+    // Apply CTA styles to button containers FIRST (before image style to avoid conflicts)
+    const buttonContainers = li.querySelectorAll('p.button-container');
+    buttonContainers.forEach(buttonContainer => {
+      // Remove any existing CTA classes and image style classes
+      buttonContainer.classList.remove('default', 'cta-button', 'cta-button-secondary', 'cta-button-dark', 'cta-default', 'compact-style');
+      // Add the correct CTA class
+      buttonContainer.classList.add(ctaStyle);
+    });
+    
+    // Remove compact-style from ALL elements (except where we'll add it)
     li.querySelectorAll('*').forEach(el => {
-      if (el.classList.contains('compact-style')) {
+      // Skip the image container - we'll add it there
+      if (el !== imageContainerDiv && el.classList.contains('compact-style')) {
         el.classList.remove('compact-style');
       }
     });
     
     // Apply image style ONLY to the image container
     if (imageContainerDiv && imageStyle && imageStyle !== 'default' && imageStyle !== '') {
+      // Remove it first in case it was already there, then add it
+      imageContainerDiv.classList.remove(imageStyle);
       imageContainerDiv.classList.add(imageStyle);
     }
     
-    // Apply CTA styles to button containers
-    const buttonContainers = li.querySelectorAll('p.button-container');
+    // Final cleanup: ensure compact-style is NOT on button containers
     buttonContainers.forEach(buttonContainer => {
-      // Remove any existing CTA classes
-      buttonContainer.classList.remove('default', 'cta-button', 'cta-button-secondary', 'cta-button-dark', 'cta-default', 'compact-style');
-      // Add the correct CTA class
-      buttonContainer.classList.add(ctaStyle);
+      if (buttonContainer.classList.contains('compact-style')) {
+        buttonContainer.classList.remove('compact-style');
+      }
     });
     
     ul.append(li);
