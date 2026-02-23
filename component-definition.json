@@ -981,6 +981,21 @@
           }
         },
         {
+          "title": "Flight",
+          "id": "flight",
+          "plugins": {
+            "xwalk": {
+              "page": {
+                "resourceType": "core/franklin/components/block/v1/block/item",
+                "template": {
+                  "name": "Flight",
+                  "model": "flight"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Flights",
           "id": "flights",
           "plugins": {
