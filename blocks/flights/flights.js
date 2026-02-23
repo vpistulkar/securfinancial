@@ -541,7 +541,7 @@ export default async function decorate(block) {
     return;
   }
   
-  // No URL params - process authorable flight items directly from block
+  // No URL params - check for authorable flight items first
   const children = Array.from(block.children);
   const flightItems = [];
   
@@ -562,53 +562,49 @@ export default async function decorate(block) {
     }
   }
   
-  if (flightItems.length === 0) {
-    // No flight items found - show message
-    const noParams = createElement('div', 'flight-no-results');
-    noParams.innerHTML = `
-      <p>No flights found. Please add flight items to this block or use the flight search form.</p>
-      <p>You can add flights directly in the Universal Editor by clicking the "+" button.</p>
-      <a href="/" class="flight-back-link">← Back to Search</a>
-    `;
-    block.appendChild(noParams);
+  // If authorable flight items exist, display them
+  if (flightItems.length > 0) {
+    // Add title and subtitle if configured
+    if (config.title || config.subtitle) {
+      const titleSection = createElement('div', 'flight-results-header');
+      if (config.title) {
+        const title = createElement('h2', 'flight-results-title');
+        title.textContent = config.title;
+        titleSection.appendChild(title);
+      }
+      if (config.subtitle) {
+        const subtitle = createElement('p', 'flight-results-subtitle');
+        subtitle.textContent = config.subtitle;
+        titleSection.appendChild(subtitle);
+      }
+      // Insert before first flight item
+      if (flightItems[0]) {
+        block.insertBefore(titleSection, flightItems[0]);
+      } else {
+        block.appendChild(titleSection);
+      }
+    }
+    
+    // Add disclaimer
+    const disclaimer = createElement('p', 'flight-results-disclaimer');
+    disclaimer.textContent = 'Presented fares are per passenger, including fees and taxes. Additional services and amenities may vary per flight or change in time.';
+    if (flightItems[0]) {
+      block.insertBefore(disclaimer, flightItems[0]);
+    } else {
+      block.appendChild(disclaimer);
+    }
+    
+    // Wrap flight items in a container (move them)
+    const resultsList = createElement('div', 'flight-results-list');
+    flightItems.forEach(item => {
+      resultsList.appendChild(item);
+    });
+    block.appendChild(resultsList);
     return;
   }
   
-  // Add title and subtitle if configured
-  if (config.title || config.subtitle) {
-    const titleSection = createElement('div', 'flight-results-header');
-    if (config.title) {
-      const title = createElement('h2', 'flight-results-title');
-      title.textContent = config.title;
-      titleSection.appendChild(title);
-    }
-    if (config.subtitle) {
-      const subtitle = createElement('p', 'flight-results-subtitle');
-      subtitle.textContent = config.subtitle;
-      titleSection.appendChild(subtitle);
-    }
-    // Insert before first flight item
-    if (flightItems[0]) {
-      block.insertBefore(titleSection, flightItems[0]);
-    } else {
-      block.appendChild(titleSection);
-    }
-  }
-  
-  // Add disclaimer
-  const disclaimer = createElement('p', 'flight-results-disclaimer');
-  disclaimer.textContent = 'Presented fares are per passenger, including fees and taxes. Additional services and amenities may vary per flight or change in time.';
-  if (flightItems[0]) {
-    block.insertBefore(disclaimer, flightItems[0]);
-  } else {
-    block.appendChild(disclaimer);
-  }
-  
-  // Wrap flight items in a container (move them)
-  const resultsList = createElement('div', 'flight-results-list');
-  flightItems.forEach(item => {
-    resultsList.appendChild(item);
-  });
-  block.appendChild(resultsList);
+  // No authorable flight items - show default sample flight (JFK-TQO)
+  const defaultFlights = SAMPLE_FLIGHTS['JFK-TQO'] || [];
+  displayFlightResults(defaultFlights, 'JFK', 'TQO', config.defaultDate, config);
 }
 
