@@ -522,6 +522,12 @@ function processFlightItem(row) {
     return;
   }
   
+  // Prevent double processing - mark immediately
+  if (row._isProcessing) {
+    return;
+  }
+  row._isProcessing = true;
+  
   // Ensure default values are populated ONLY if item is completely empty
   // This prevents overwriting saved values on page refresh
   ensureDefaultValues(row);
@@ -852,6 +858,12 @@ function readFlightItem(row) {
 
 // Main decorate function
 export default async function decorate(block) {
+  // Prevent multiple executions
+  if (block.dataset.decorated === 'true') {
+    return;
+  }
+  block.dataset.decorated = 'true';
+  
   // Read configuration from block children (authorable fields)
   // Block structure: each field is in a div > div > p structure
   const readConfigValue = (index) => {
@@ -916,6 +928,7 @@ export default async function decorate(block) {
   // No URL params - check for authorable flight items first
   const children = Array.from(block.children);
   const flightItems = [];
+  const processedItems = new Set(); // Track processed items to prevent duplicates
   
   // Find flight items (starting from index 7, after config divs)
   for (let i = 7; i < children.length; i++) {
@@ -924,7 +937,15 @@ export default async function decorate(block) {
     // Skip if it's a display element (already processed)
     if (child.classList.contains('flight-results-header') || 
         child.classList.contains('flight-results-disclaimer') ||
-        child.classList.contains('flight-results-list')) {
+        child.classList.contains('flight-results-list') ||
+        child.classList.contains('flight-card-image') ||
+        child.classList.contains('flight-card-details') ||
+        child.classList.contains('flight-card-price')) {
+      continue;
+    }
+    
+    // Skip if already processed
+    if (processedItems.has(child)) {
       continue;
     }
     
@@ -936,6 +957,17 @@ export default async function decorate(block) {
     // Only process if it's explicitly marked as a flight item OR has flight data fields
     // Don't process based on child count alone as config fields might match
     if (hasFlightModel || hasFlightData) {
+      // Skip if already processed (has flight-card class and display elements)
+      if (child.classList.contains('flight-card') && 
+          (child.querySelector('.flight-card-image') || child.querySelector('.flight-card-details'))) {
+        // Already processed, just add to list if not already added
+        if (!flightItems.includes(child)) {
+          flightItems.push(child);
+        }
+        processedItems.add(child);
+        continue;
+      }
+      
       // Ensure it has the model attribute for UE
       if (!child.getAttribute('data-aue-model')) {
         child.setAttribute('data-aue-model', 'flight');
@@ -943,16 +975,26 @@ export default async function decorate(block) {
       }
       
       // This is a flight item - process it directly (which will ensure defaults only if empty)
-      processFlightItem(child);
-      flightItems.push(child);
+      // Only process if not already in the list
+      if (!flightItems.includes(child)) {
+        processFlightItem(child);
+        flightItems.push(child);
+        processedItems.add(child);
+      }
     }
   }
   
   // If no authorable flight items exist, create a default one (JFK-TQO)
+  // BUT only if we haven't already processed any flights AND no flights exist in DOM
   if (flightItems.length === 0) {
-    const defaultFlight = createDefaultFlightItem(block);
-    processFlightItem(defaultFlight);
-    flightItems.push(defaultFlight);
+    // Double check - make sure there really are no flight items
+    const existingFlights = block.querySelectorAll('[data-aue-model="flight"]');
+    if (existingFlights.length === 0) {
+      const defaultFlight = createDefaultFlightItem(block);
+      processFlightItem(defaultFlight);
+      flightItems.push(defaultFlight);
+      processedItems.add(defaultFlight);
+    }
   }
   
   // Display authorable flight items
