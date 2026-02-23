@@ -92,11 +92,25 @@ export default function decorate(block) {
     // Apply CTA styles to button containers
     const buttonContainers = li.querySelectorAll('p.button-container');
     buttonContainers.forEach(buttonContainer => {
-      // Remove any existing CTA classes
+      // Remove any existing CTA classes and ensure compact-style is NOT on button containers
       buttonContainer.classList.remove('default', 'cta-button', 'cta-button-secondary', 'cta-button-dark', 'cta-default', 'compact-style');
       // Add the correct CTA class
       buttonContainer.classList.add(ctaStyle);
     });
+    
+    // Final cleanup: ensure compact-style is ONLY on the image container
+    // Remove it from everything, then re-add it only to the image container
+    if (imageStyle && imageStyle === 'compact-style') {
+      li.querySelectorAll('*').forEach(el => {
+        if (el !== imageContainerDiv && el.classList.contains('compact-style')) {
+          el.classList.remove('compact-style');
+        }
+      });
+      // Re-apply to image container if it was removed
+      if (imageContainerDiv && !imageContainerDiv.classList.contains('compact-style')) {
+        imageContainerDiv.classList.add('compact-style');
+      }
+    }
     
     ul.append(li);
   });
@@ -104,6 +118,30 @@ export default function decorate(block) {
     const optimizedPic = createOptimizedPicture(img.src, img.alt, false, [{ width: '750' }]);
     moveInstrumentation(img, optimizedPic.querySelector('img'));
     img.closest('picture').replaceWith(optimizedPic);
+  });
+  
+  // Final cleanup after image optimization: ensure compact-style is only on image containers
+  ul.querySelectorAll('li').forEach((li) => {
+    const imageContainer = li.querySelector('.cards-card-image');
+    const buttonContainers = li.querySelectorAll('p.button-container');
+    
+    // Remove compact-style from button containers
+    buttonContainers.forEach(buttonContainer => {
+      if (buttonContainer.classList.contains('compact-style')) {
+        buttonContainer.classList.remove('compact-style');
+      }
+    });
+    
+    // Ensure compact-style is on image container if it should be
+    // Check if there's an image style config div with compact-style
+    const imageStyleConfig = Array.from(li.querySelectorAll('.cards-config')).find(div => {
+      const p = div.querySelector('p[data-aue-prop="imagestyle"]');
+      return p && p.textContent.trim() === 'compact-style';
+    });
+    
+    if (imageStyleConfig && imageContainer) {
+      imageContainer.classList.add('compact-style');
+    }
   });
  
   block.textContent = '';
