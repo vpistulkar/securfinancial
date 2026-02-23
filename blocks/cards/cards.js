@@ -36,14 +36,12 @@ export default function decorate(block) {
     while (row.firstElementChild) li.append(row.firstElementChild);
     
     // Process the li children to identify and style them correctly
+    let imageContainerDiv = null;
     [...li.children].forEach((div, index) => {
       // First div (index 0) - Image
       if (index === 0) {
         div.className = 'cards-card-image';
-        // Apply image style class if specified
-        if (imageStyle && imageStyle !== 'default') {
-          div.classList.add(imageStyle);
-        }
+        imageContainerDiv = div; // Store reference for later
       }
       // Second div (index 1) - Content with button
       else if (index === 1) {
@@ -79,11 +77,23 @@ export default function decorate(block) {
       }
     });
     
+    // First, remove compact-style from ALL elements to prevent it from being on wrong elements
+    li.querySelectorAll('*').forEach(el => {
+      if (el.classList.contains('compact-style')) {
+        el.classList.remove('compact-style');
+      }
+    });
+    
+    // Apply image style ONLY to the image container
+    if (imageContainerDiv && imageStyle && imageStyle !== 'default' && imageStyle !== '') {
+      imageContainerDiv.classList.add(imageStyle);
+    }
+    
     // Apply CTA styles to button containers
     const buttonContainers = li.querySelectorAll('p.button-container');
     buttonContainers.forEach(buttonContainer => {
       // Remove any existing CTA classes
-      buttonContainer.classList.remove('default', 'cta-button', 'cta-button-secondary', 'cta-button-dark', 'cta-default');
+      buttonContainer.classList.remove('default', 'cta-button', 'cta-button-secondary', 'cta-button-dark', 'cta-default', 'compact-style');
       // Add the correct CTA class
       buttonContainer.classList.add(ctaStyle);
     });
