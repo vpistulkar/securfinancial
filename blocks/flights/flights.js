@@ -984,17 +984,13 @@ export default async function decorate(block) {
     }
   }
   
-  // If no authorable flight items exist, create a default one (JFK-TQO)
-  // BUT only if we haven't already processed any flights AND no flights exist in DOM
+  // Don't create default flight - flights should only appear when explicitly added in UE
+  // If no flight items exist, just show empty state or nothing
+  
+  // Only display UI elements if there are flight items
   if (flightItems.length === 0) {
-    // Double check - make sure there really are no flight items
-    const existingFlights = block.querySelectorAll('[data-aue-model="flight"]');
-    if (existingFlights.length === 0) {
-      const defaultFlight = createDefaultFlightItem(block);
-      processFlightItem(defaultFlight);
-      flightItems.push(defaultFlight);
-      processedItems.add(defaultFlight);
-    }
+    // No flights - just return, don't show anything
+    return;
   }
   
   // Display authorable flight items
