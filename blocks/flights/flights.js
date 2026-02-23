@@ -431,6 +431,22 @@ function processFlightItem(row) {
         }
       }
     }
+    
+    // Update select button handler
+    if (selectButton) {
+      selectButton.onclick = () => {
+        handleFlightSelect({
+          from,
+          to,
+          fromName,
+          toName,
+          departureTime,
+          arrivalTime,
+          price: parseFloat(price) || 0,
+          class: flightClass
+        });
+      };
+    }
   };
   
   // Hide original field divs but keep them in DOM for UE (they stay as children)
@@ -451,24 +467,10 @@ function processFlightItem(row) {
   const priceContainer = createElement('div', 'flight-card-price');
   const priceClassEl = createElement('div', 'flight-class');
   const priceEl = createElement('div', 'flight-price');
+  const selectButton = createElement('button', 'flight-select-button', 'Select');
   
   detailsContainer.appendChild(routeEl);
   detailsContainer.appendChild(timesEl);
-  
-  const selectButton = createElement('button', 'flight-select-button', 'Select');
-  selectButton.addEventListener('click', () => {
-    handleFlightSelect({
-      from: readFieldValue('from'),
-      to: readFieldValue('to'),
-      fromName: readFieldValue('fromName'),
-      toName: readFieldValue('toName'),
-      departureTime: readFieldValue('departureTime'),
-      arrivalTime: readFieldValue('arrivalTime'),
-      price: parseFloat(readFieldValue('price')) || 0,
-      class: readFieldValue('class')
-    });
-  });
-  
   priceContainer.appendChild(priceClassEl);
   priceContainer.appendChild(priceEl);
   priceContainer.appendChild(selectButton);

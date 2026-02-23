@@ -106,63 +106,72 @@
           "name": "image",
           "label": "Image",
           "multi": false,
-          "description": "Flight destination image"
+          "description": "Flight destination image",
+          "value": "https://t3.ftcdn.net/jpg/05/61/35/04/240_F_561350476_Oz0OHoStNdPdsiDVY6K2DQG2SqyYlSgI.jpg"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "from",
           "label": "From Airport Code",
-          "description": "Airport code (e.g., AMS, WAW, JFK)"
+          "description": "Airport code (e.g., AMS, WAW, JFK)",
+          "value": "JFK"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "fromName",
           "label": "From Airport Name",
-          "description": "Airport city name (e.g., Amsterdam, Warsaw)"
+          "description": "Airport city name (e.g., Amsterdam, Warsaw)",
+          "value": "New York"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "to",
           "label": "To Airport Code",
-          "description": "Airport code (e.g., TQO, JFK)"
+          "description": "Airport code (e.g., TQO, JFK)",
+          "value": "TQO"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "toName",
           "label": "To Airport Name",
-          "description": "Airport city name (e.g., Tulum, New York)"
+          "description": "Airport city name (e.g., Tulum, New York)",
+          "value": "Tulum"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "departureTime",
           "label": "Departure Time",
-          "description": "Departure time (e.g., 5:15 PM, 10:00 AM)"
+          "description": "Departure time (e.g., 5:15 PM, 10:00 AM)",
+          "value": "9:00 AM"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "arrivalTime",
           "label": "Arrival Time",
-          "description": "Arrival time (e.g., 3:30 AM, 8:15 PM)"
+          "description": "Arrival time (e.g., 3:30 AM, 8:15 PM)",
+          "value": "1:30 PM"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "price",
           "label": "Price",
-          "description": "Flight price (e.g., 550.00)"
+          "description": "Flight price (e.g., 550.00)",
+          "value": "450.00"
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "class",
           "label": "Class",
-          "description": "Flight class (e.g., Standard, Business)"
+          "description": "Flight class (e.g., Standard, Business)",
+          "value": "Standard"
         }
       ]
     }
