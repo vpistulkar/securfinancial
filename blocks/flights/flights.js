@@ -243,7 +243,7 @@ function handleFlightSelect(flight) {
 
 // Read flight item from a block child (row)
 function readFlightItem(row) {
-  // Each flight item has fields in this order:
+  // Each flight item has fields in this order (matching model definition):
   // 0: image (reference - link, img, or picture)
   // 1: from (text)
   // 2: fromName (text)
@@ -254,13 +254,45 @@ function readFlightItem(row) {
   // 7: price (text)
   // 8: class (text)
   
-  const readField = (index) => {
-    const div = row.querySelector(`:scope > div:nth-child(${index + 1}) > div`);
-    return div?.textContent?.trim() || '';
+  const readField = (index, fieldName) => {
+    // Try to find by data attribute first (more reliable)
+    if (fieldName) {
+      const byDataAttr = row.querySelector(`[data-aue-prop="${fieldName}"]`);
+      if (byDataAttr) {
+        // Check for p tag
+        const p = byDataAttr.querySelector('p');
+        if (p) return p.textContent?.trim() || '';
+        // Check for nested div
+        const nestedDiv = byDataAttr.querySelector('div');
+        if (nestedDiv) return nestedDiv.textContent?.trim() || '';
+        // Check direct text content
+        return byDataAttr.textContent?.trim() || '';
+      }
+    }
+    
+    // Fallback to index-based reading
+    const div = row.querySelector(`:scope > div:nth-child(${index + 1})`);
+    if (div) {
+      // Check for p tag first (common structure)
+      const p = div.querySelector('p');
+      if (p) return p.textContent?.trim() || '';
+      // Check for nested div
+      const nestedDiv = div.querySelector('div');
+      if (nestedDiv) return nestedDiv.textContent?.trim() || '';
+      // Check direct text content
+      return div.textContent?.trim() || '';
+    }
+    return '';
   };
   
   // Read image - can be a link, img tag, or picture element
-  const imageDiv = row.querySelector(':scope > div:nth-child(1)');
+  // Try data attribute first
+  let imageDiv = row.querySelector('[data-aue-prop="image"]');
+  if (!imageDiv) {
+    // Fallback to first child
+    imageDiv = row.querySelector(':scope > div:nth-child(1)');
+  }
+  
   let imageUrl = '';
   if (imageDiv) {
     // Check for picture > img
@@ -295,15 +327,18 @@ function readFlightItem(row) {
   const flight = {
     id: `flight-${Date.now()}-${Math.random()}`,
     image: imageUrl,
-    from: readField(1),
-    fromName: readField(2),
-    to: readField(3),
-    toName: readField(4),
-    departureTime: readField(5),
-    arrivalTime: readField(6),
-    price: parseFloat(readField(7)) || 0,
-    class: readField(8),
+    from: readField(1, 'from'),
+    fromName: readField(2, 'fromName'),
+    to: readField(3, 'to'),
+    toName: readField(4, 'toName'),
+    departureTime: readField(5, 'departureTime'),
+    arrivalTime: readField(6, 'arrivalTime'),
+    price: parseFloat(readField(7, 'price')) || 0,
+    class: readField(8, 'class'),
   };
+  
+  // Debug logging to help troubleshoot
+  console.log('Flight item read:', flight);
   
   // Only return flight if it has required fields
   if (flight.from && flight.to) {
@@ -377,17 +412,28 @@ export default async function decorate(block) {
     // Read flight items from remaining children (starting from index 7)
     for (let i = 7; i < children.length; i++) {
       const child = children[i];
-      // Check if this child has flight item structure (has data-aue-model="flight" or is a flight item)
-      const isFlightItem = child.getAttribute('data-aue-model') === 'flight' || 
-                          child.querySelector('[data-aue-model="flight"]') ||
-                          child.children.length >= 9; // Flight items have at least 9 fields
+      // Check if this child has flight item structure
+      const hasFlightModel = child.getAttribute('data-aue-model') === 'flight' || 
+                            child.querySelector('[data-aue-model="flight"]');
+      const hasFlightFields = child.children.length >= 9; // Flight items have at least 9 fields
       
-      if (isFlightItem) {
+      // Debug logging
+      console.log(`Child ${i}:`, {
+        hasFlightModel,
+        hasFlightFields,
+        childrenCount: child.children.length,
+        dataAueModel: child.getAttribute('data-aue-model'),
+        html: child.innerHTML.substring(0, 200)
+      });
+      
+      if (hasFlightModel || hasFlightFields) {
         const flight = readFlightItem(child);
         if (flight) {
           flightItems.push(flight);
           // Hide the config div but keep it for Universal Editor
           child.style.display = 'none';
+        } else {
+          console.warn('Flight item detected but could not be parsed:', child);
         }
       }
     }
