@@ -342,8 +342,84 @@ function createDefaultFlightItem(block) {
   return flightItem;
 }
 
+// Ensure flight item has default values if fields are empty
+function ensureDefaultValues(row) {
+  const defaultValues = {
+    image: 'https://t3.ftcdn.net/jpg/05/61/35/04/240_F_561350476_Oz0OHoStNdPdsiDVY6K2DQG2SqyYlSgI.jpg',
+    from: 'JFK',
+    fromName: 'New York',
+    to: 'TQO',
+    toName: 'Tulum',
+    departureTime: '9:00 AM',
+    arrivalTime: '1:30 PM',
+    price: '450.00',
+    class: 'Standard'
+  };
+  
+  const fieldOrder = ['image', 'from', 'fromName', 'to', 'toName', 'departureTime', 'arrivalTime', 'price', 'class'];
+  
+  fieldOrder.forEach((fieldName, index) => {
+    let fieldDiv = row.querySelector(`[data-aue-prop="${fieldName}"]`);
+    
+    // If not found by data attribute, try by index
+    if (!fieldDiv) {
+      const children = Array.from(row.children);
+      if (children[index]) {
+        fieldDiv = children[index];
+        // Add data attribute if missing
+        if (!fieldDiv.getAttribute('data-aue-prop')) {
+          fieldDiv.setAttribute('data-aue-prop', fieldName);
+        }
+      }
+    }
+    
+    // If field div doesn't exist, create it
+    if (!fieldDiv) {
+      fieldDiv = createElement('div', '');
+      fieldDiv.setAttribute('data-aue-prop', fieldName);
+      row.appendChild(fieldDiv);
+    }
+    
+    // Check if field is empty - check multiple ways
+    const p = fieldDiv.querySelector('p');
+    const link = fieldDiv.querySelector('a');
+    const img = fieldDiv.querySelector('img');
+    const picture = fieldDiv.querySelector('picture');
+    const nestedDiv = fieldDiv.querySelector('div');
+    
+    const hasValue = (p && p.textContent?.trim()) || 
+                     (link && (link.href || link.textContent?.trim())) ||
+                     (img && (img.src || img.getAttribute('data-src'))) ||
+                     (picture && picture.querySelector('img')) ||
+                     (nestedDiv && nestedDiv.textContent?.trim()) ||
+                     (fieldDiv.textContent?.trim() && !fieldDiv.querySelector('p') && !fieldDiv.querySelector('a'));
+    
+    // If empty, populate with default value
+    if (!hasValue) {
+      // Clear existing content
+      fieldDiv.innerHTML = '';
+      
+      if (fieldName === 'image') {
+        // For image, create a link
+        const imageLink = createElement('a', '');
+        imageLink.href = defaultValues.image;
+        imageLink.textContent = defaultValues.image;
+        fieldDiv.appendChild(imageLink);
+      } else {
+        // For text fields, create a p tag
+        const p = createElement('p', '');
+        p.textContent = defaultValues[fieldName];
+        fieldDiv.appendChild(p);
+      }
+    }
+  });
+}
+
 // Process a flight item directly from the DOM structure
 function processFlightItem(row) {
+  // Ensure default values are populated first
+  ensureDefaultValues(row);
+  
   // Transform the row into a flight card structure while preserving UE fields
   row.className = 'flight-card';
   
@@ -679,8 +755,16 @@ export default async function decorate(block) {
     const hasFlightData = child.querySelector('[data-aue-prop="from"]') || 
                          child.querySelector('[data-aue-prop="to"]');
     
+    // If it has the flight model attribute, it's definitely a flight item
+    // Even if fields are missing, we'll create them with defaults
     if (hasFlightModel || hasFlightFields || hasFlightData) {
-      // This is a flight item - process it directly
+      // Ensure it has the model attribute for UE
+      if (!child.getAttribute('data-aue-model')) {
+        child.setAttribute('data-aue-model', 'flight');
+        child.setAttribute('data-aue-type', 'component');
+      }
+      
+      // This is a flight item - process it directly (which will ensure defaults)
       processFlightItem(child);
       flightItems.push(child);
     }
