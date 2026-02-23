@@ -60,5 +60,11 @@
       "title",
       "video"
     ]
+  },
+  {
+    "id": "flights",
+    "components": [
+      "flight"
+    ]
   }
 ]

@@ -53,6 +53,42 @@
           "name": "subtitle",
           "label": "Subtitle",
           "description": "Optional subtitle or description for the flights results page."
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "defaultFrom",
+          "label": "Default From Airport",
+          "description": "Default 'from' airport code (e.g., WAW, AMS). Used when URL parameters are not present."
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "defaultTo",
+          "label": "Default To Airport",
+          "description": "Default 'to' airport code (e.g., TQO, JFK). Used when URL parameters are not present."
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "defaultDate",
+          "label": "Default Date",
+          "description": "Default date in YYYY-MM-DD format. Used when URL parameters are not present."
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "apiUrl",
+          "label": "API URL",
+          "description": "Optional API URL for fetching flight data. If not provided, sample data will be used."
+        },
+        {
+          "component": "reference",
+          "valueType": "string",
+          "name": "flightImages",
+          "label": "Flight Images",
+          "multi": true,
+          "description": "Multiple images for flights. Images will be assigned to flights in order."
         }
       ]
     },
@@ -69,7 +105,8 @@
           "valueType": "string",
           "name": "image",
           "label": "Image",
-          "multi": false
+          "multi": false,
+          "description": "Flight destination image"
         },
         {
           "component": "text",

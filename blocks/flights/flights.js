@@ -105,7 +105,23 @@ function createElement(tag, className, content) {
 
 function formatDate(date) {
   if (!date) return '';
-  const d = new Date(date);
+  // Handle ISO date strings (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
+  let d;
+  if (typeof date === 'string' && date.includes('T')) {
+    // ISO format with time
+    d = new Date(date);
+  } else if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    // YYYY-MM-DD format
+    d = new Date(date + 'T00:00:00');
+  } else {
+    d = new Date(date);
+  }
+  
+  // Check if date is valid
+  if (isNaN(d.getTime())) {
+    return '';
+  }
+  
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   const year = d.getFullYear();
@@ -228,7 +244,7 @@ function handleFlightSelect(flight) {
 // Read flight item from a block child (row)
 function readFlightItem(row) {
   // Each flight item has fields in this order:
-  // 0: image (reference - link or img)
+  // 0: image (reference - link, img, or picture)
   // 1: from (text)
   // 2: fromName (text)
   // 3: to (text)
@@ -298,67 +314,105 @@ function readFlightItem(row) {
 
 // Main decorate function
 export default async function decorate(block) {
-  block.className = 'flights';
-  
-  // Read block-level config (title, subtitle) from first 2 children
+  // Read configuration from block children (authorable fields)
+  // Block structure: each field is in a div > div > p structure
   const readConfigValue = (index) => {
     const div = block.querySelector(`:scope > div:nth-child(${index}) > div`);
     return div?.textContent?.trim() || '';
   };
   
+  // Read all authorable fields
+  // For multi-reference fields like images, read all links/anchors
+  const readImageReferences = () => {
+    const imageDiv = block.querySelector(':scope > div:nth-child(7)');
+    if (!imageDiv) return [];
+    const links = imageDiv.querySelectorAll('a');
+    return Array.from(links).map(link => link.href || link.textContent?.trim()).filter(Boolean);
+  };
+  
   const config = {
     title: readConfigValue(1),
     subtitle: readConfigValue(2),
+    defaultFrom: readConfigValue(3),
+    defaultTo: readConfigValue(4),
+    defaultDate: readConfigValue(5),
+    apiUrl: readConfigValue(6),
+    flightImages: readImageReferences(),
   };
   
-  // Read flight items from remaining children (starting from index 3)
-  // Each child is a flight item
-  const flightItems = [];
-  const children = Array.from(block.children);
+  // Get URL parameters (priority over authorable fields)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlFrom = urlParams.get('from');
+  const urlTo = urlParams.get('to');
+  const urlDate = urlParams.get('date');
   
-  // Skip first 2 children (title, subtitle config) and read flight items
-  for (let i = 2; i < children.length; i++) {
-    const child = children[i];
-    // Check if this child has flight item structure (has data-aue-model="flight" or is a flight item)
-    const isFlightItem = child.getAttribute('data-aue-model') === 'flight' || 
-                         child.querySelector('[data-aue-model="flight"]') ||
-                         child.children.length >= 9; // Flight items have at least 9 fields
-    
-    if (isFlightItem) {
-      const flight = readFlightItem(child);
-      if (flight) {
-        flightItems.push(flight);
-      }
-      // Hide the config div but keep it for Universal Editor
+  // Preserve block structure for authoring
+  block.className = 'flights';
+  
+  // Hide config divs but keep them for Universal Editor
+  Array.from(block.children).forEach((child, index) => {
+    if (index >= 0 && index < 7) {
       child.style.display = 'none';
+    }
+  });
+  
+  let flights = [];
+  let from = '';
+  let to = '';
+  let date = '';
+  
+  // If URL parameters are present, use sample data based on route
+  if (urlFrom && urlTo) {
+    from = urlFrom;
+    to = urlTo;
+    date = urlDate || config.defaultDate;
+    const route = `${from}-${to}`;
+    flights = SAMPLE_FLIGHTS[route] || [];
+  } else {
+    // No URL params - read authorable flight items from block children
+    // Flight items start after the 7 config divs (index 7+)
+    const children = Array.from(block.children);
+    const flightItems = [];
+    
+    // Read flight items from remaining children (starting from index 7)
+    for (let i = 7; i < children.length; i++) {
+      const child = children[i];
+      // Check if this child has flight item structure (has data-aue-model="flight" or is a flight item)
+      const isFlightItem = child.getAttribute('data-aue-model') === 'flight' || 
+                          child.querySelector('[data-aue-model="flight"]') ||
+                          child.children.length >= 9; // Flight items have at least 9 fields
+      
+      if (isFlightItem) {
+        const flight = readFlightItem(child);
+        if (flight) {
+          flightItems.push(flight);
+          // Hide the config div but keep it for Universal Editor
+          child.style.display = 'none';
+        }
+      }
+    }
+    
+    if (flightItems.length > 0) {
+      // Use authorable flight items
+      flights = flightItems;
+      // Determine from/to from first flight or config defaults
+      from = flights[0]?.from || config.defaultFrom;
+      to = flights[0]?.to || config.defaultTo;
+      date = config.defaultDate;
+    } else {
+      // No flight items and no URL params - show message
+      const noParams = createElement('div', 'flight-no-results');
+      noParams.innerHTML = `
+        <p>No flights found. Please add flight items to this block or use the flight search form.</p>
+        <p>You can add flights directly in the Universal Editor by clicking the "+" button.</p>
+        <a href="/" class="flight-back-link">← Back to Search</a>
+      `;
+      block.appendChild(noParams);
+      return;
     }
   }
   
-  // Hide config divs (title, subtitle) but keep them for Universal Editor
-  if (children[0]) children[0].style.display = 'none';
-  if (children[1]) children[1].style.display = 'none';
-  
-  // Get URL parameters for optional filtering
-  const urlParams = new URLSearchParams(window.location.search);
-  const filterFrom = urlParams.get('from');
-  const filterTo = urlParams.get('to');
-  const date = urlParams.get('date');
-  
-  // Filter flights by URL parameters if provided
-  let flights = flightItems;
-  if (filterFrom || filterTo) {
-    flights = flightItems.filter(flight => {
-      const matchesFrom = !filterFrom || flight.from.toUpperCase() === filterFrom.toUpperCase();
-      const matchesTo = !filterTo || flight.to.toUpperCase() === filterTo.toUpperCase();
-      return matchesFrom && matchesTo;
-    });
-  }
-  
-  // Determine from/to for display (use first flight or URL params)
-  const from = filterFrom || flights[0]?.from || '';
-  const to = filterTo || flights[0]?.to || '';
-  
-  // Display results
+  // Display results with config
   displayFlightResults(flights, from, to, date, config);
 }
 
