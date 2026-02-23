@@ -507,17 +507,46 @@ function processFlightItem(row) {
   // Store original field divs (preserve them for UE - they must stay as children)
   const originalChildren = Array.from(row.children);
   
-  // Helper to read field values from preserved divs
+  // Helper to read field values from preserved divs - always reads fresh from DOM
   const readFieldValue = (fieldName) => {
+    // Always query fresh from the row to get current values
     // First try to find by data attribute
-    const fieldDiv = row.querySelector(`[data-aue-prop="${fieldName}"]`);
+    let fieldDiv = row.querySelector(`[data-aue-prop="${fieldName}"]`);
+    
+    if (!fieldDiv) {
+      // Fallback to index-based
+      const index = ['image', 'from', 'fromName', 'to', 'toName', 'departureTime', 'arrivalTime', 'price', 'class'].indexOf(fieldName);
+      if (index >= 0) {
+        const children = Array.from(row.children);
+        // Skip display elements, only look at field divs
+        let fieldIndex = 0;
+        for (let i = 0; i < children.length; i++) {
+          const child = children[i];
+          if (child.classList.contains('flight-card-image') || 
+              child.classList.contains('flight-card-details') || 
+              child.classList.contains('flight-card-price')) {
+            continue; // Skip display elements
+          }
+          if (fieldIndex === index) {
+            fieldDiv = child;
+            break;
+          }
+          fieldIndex++;
+        }
+      }
+    }
+    
     if (fieldDiv) {
       // For image field, check for link, img, or picture
       if (fieldName === 'image') {
         const link = fieldDiv.querySelector('a');
-        if (link) return link.href || link.textContent?.trim() || '';
+        if (link && (link.href || link.textContent?.trim())) {
+          return link.href || link.textContent?.trim() || '';
+        }
         const img = fieldDiv.querySelector('img');
-        if (img) return img.src || img.getAttribute('data-src') || '';
+        if (img && (img.src || img.getAttribute('data-src'))) {
+          return img.src || img.getAttribute('data-src') || '';
+        }
         const picture = fieldDiv.querySelector('picture');
         if (picture) {
           const picImg = picture.querySelector('img');
@@ -526,32 +555,21 @@ function processFlightItem(row) {
         // Fallback to text content
         return fieldDiv.textContent?.trim() || '';
       }
-      // For text fields
+      // For text fields - check p tag first (most common)
       const p = fieldDiv.querySelector('p');
-      if (p) return p.textContent?.trim() || '';
-      const div = fieldDiv.querySelector('div');
-      if (div) return div.textContent?.trim() || '';
-      return fieldDiv.textContent?.trim() || '';
-    }
-    // Fallback to index-based
-    const index = ['image', 'from', 'fromName', 'to', 'toName', 'departureTime', 'arrivalTime', 'price', 'class'].indexOf(fieldName);
-    if (index >= 0 && originalChildren[index]) {
-      const div = originalChildren[index];
-      // For image field, check for link, img, or picture
-      if (fieldName === 'image') {
-        const link = div.querySelector('a');
-        if (link) return link.href || link.textContent?.trim() || '';
-        const img = div.querySelector('img');
-        if (img) return img.src || img.getAttribute('data-src') || '';
-        const picture = div.querySelector('picture');
-        if (picture) {
-          const picImg = picture.querySelector('img');
-          if (picImg) return picImg.src || picImg.getAttribute('data-src') || '';
-        }
+      if (p && p.textContent?.trim()) {
+        return p.textContent.trim();
       }
-      const p = div.querySelector('p');
-      if (p) return p.textContent?.trim() || '';
-      return div.textContent?.trim() || '';
+      // Check for nested div
+      const nestedDiv = fieldDiv.querySelector('div:not([data-aue-prop])');
+      if (nestedDiv && nestedDiv.textContent?.trim()) {
+        return nestedDiv.textContent.trim();
+      }
+      // Check direct text content (but only if no p or nested div)
+      const directText = fieldDiv.textContent?.trim();
+      if (directText && !p && !nestedDiv) {
+        return directText;
+      }
     }
     return '';
   };
@@ -630,10 +648,18 @@ function processFlightItem(row) {
   // Hide original field divs but keep them in DOM for UE (they stay as children)
   originalChildren.forEach((child) => {
     // Only hide if it's a field div (has data-aue-prop or is in expected position)
+    // Skip display elements that we're about to add
+    if (child.classList.contains('flight-card-image') || 
+        child.classList.contains('flight-card-details') || 
+        child.classList.contains('flight-card-price')) {
+      return; // Don't hide display elements
+    }
+    
     const isFieldDiv = child.getAttribute('data-aue-prop') || 
-                      originalChildren.indexOf(child) < 9;
+                      (originalChildren.indexOf(child) < 9 && !child.classList.contains('flight-card'));
     if (isFieldDiv) {
       child.style.display = 'none';
+      child.setAttribute('data-aue-hidden', 'true'); // Mark as hidden for UE
     }
   });
   
