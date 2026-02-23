@@ -51,6 +51,23 @@
         },
         {
           "component": "select",
+          "name": "imagestyle",
+          "label": "Image Style",
+          "valueType": "string",
+          "value": "",
+          "options": [
+            {
+              "name": "default",
+              "value": ""
+            },
+            {
+              "name": "Compact Style",
+              "value": "compact-style"
+            }
+          ]
+        },
+        {
+          "component": "select",
           "name": "ctastyle",
           "label": "CTA Style",
           "valueType": "string",

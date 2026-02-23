@@ -27,6 +27,11 @@ export default function decorate(block) {
     const ctaParagraph = ctaDiv?.querySelector('p');
     const ctaStyle = ctaParagraph?.textContent?.trim() || 'default';
     
+    // Read image style from the fifth div (index 4)
+    const imageStyleDiv = row.children[4];
+    const imageStyleParagraph = imageStyleDiv?.querySelector('p');
+    const imageStyle = imageStyleParagraph?.textContent?.trim() || '';
+    
     moveInstrumentation(row, li);
     while (row.firstElementChild) li.append(row.firstElementChild);
     
@@ -35,6 +40,10 @@ export default function decorate(block) {
       // First div (index 0) - Image
       if (index === 0) {
         div.className = 'cards-card-image';
+        // Apply image style class if specified
+        if (imageStyle && imageStyle !== 'default') {
+          div.classList.add(imageStyle);
+        }
       }
       // Second div (index 1) - Content with button
       else if (index === 1) {
@@ -50,6 +59,14 @@ export default function decorate(block) {
       }
       // Fourth div (index 3) - CTA style configuration
       else if (index === 3) {
+        div.className = 'cards-config';
+        const p = div.querySelector('p');
+        if (p) {
+          p.style.display = 'none'; // Hide the configuration text
+        }
+      }
+      // Fifth div (index 4) - Image style configuration
+      else if (index === 4) {
         div.className = 'cards-config';
         const p = div.querySelector('p');
         if (p) {

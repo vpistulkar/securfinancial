@@ -405,6 +405,31 @@
 }
 
 
+/* Card Image Style - Compact Style */
+.cards > ul > li .cards-card-image.compact-style img {
+  width: 100%;
+  height: 150px;
+  min-height: 150px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.cards > ul > li .cards-card-image.compact-style picture {
+  width: 100%;
+  height: 150px;
+  min-height: 150px;
+  display: block;
+}
+
+.cards > ul > li .cards-card-image.compact-style picture img {
+  width: 100%;
+  height: 150px;
+  min-height: 150px;
+  object-fit: cover;
+  object-position: center;
+}
+
+
 /* Responsive Styles */
 @media (width < 1024px) {
 

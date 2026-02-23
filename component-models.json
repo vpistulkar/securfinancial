@@ -408,6 +408,21 @@
       },
       {
         "component": "select",
+        "name": "imagestyle",
+        "label": "Image Style",
+        "options": [
+          {
+            "name": "default",
+            "value": ""
+          },
+          {
+            "name": "Compact Style",
+            "value": "compact-style"
+          }
+        ]
+      },
+      {
+        "component": "select",
         "name": "ctastyle",
         "label": "CTA Style",
         "options": [
