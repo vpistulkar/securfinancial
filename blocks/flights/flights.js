@@ -131,9 +131,21 @@ function formatDate(date) {
 // Display flight results
 function displayFlightResults(flights, from, to, date, config = {}) {
   const block = document.querySelector('.flights');
-  if (!block) return;
+  if (!block) {
+    console.error('Flights block not found!');
+    return;
+  }
   
+  console.log('Displaying flights:', flights.length, flights);
+  
+  // Clear existing content but preserve hidden config divs
+  const hiddenDivs = Array.from(block.children).filter(child => child.style.display === 'none');
   block.innerHTML = '';
+  // Re-append hidden divs for Universal Editor
+  hiddenDivs.forEach(div => {
+    div.style.display = 'none';
+    block.appendChild(div);
+  });
   
   if (flights.length === 0) {
     const noResults = createElement('div', 'flight-no-results');
@@ -239,6 +251,135 @@ function handleFlightSelect(flight) {
   
   // You can add navigation or modal here
   // window.location.href = `/book-flight?id=${flight.id}`;
+}
+
+// Process a flight item directly from the DOM structure
+function processFlightItem(row) {
+  // Transform the row into a flight card structure
+  row.className = 'flight-card';
+  
+  // Read field values
+  const readFieldValue = (fieldName) => {
+    const fieldDiv = row.querySelector(`[data-aue-prop="${fieldName}"]`);
+    if (fieldDiv) {
+      const p = fieldDiv.querySelector('p');
+      if (p) return p.textContent?.trim() || '';
+      const div = fieldDiv.querySelector('div');
+      if (div) return div.textContent?.trim() || '';
+      return fieldDiv.textContent?.trim() || '';
+    }
+    // Fallback to index-based
+    const index = ['image', 'from', 'fromName', 'to', 'toName', 'departureTime', 'arrivalTime', 'price', 'class'].indexOf(fieldName);
+    if (index >= 0) {
+      const div = row.querySelector(`:scope > div:nth-child(${index + 1})`);
+      if (div) {
+        const p = div.querySelector('p');
+        if (p) return p.textContent?.trim() || '';
+        return div.textContent?.trim() || '';
+      }
+    }
+    return '';
+  };
+  
+  // Get field values
+  const from = readFieldValue('from');
+  const fromName = readFieldValue('fromName');
+  const to = readFieldValue('to');
+  const toName = readFieldValue('toName');
+  const departureTime = readFieldValue('departureTime');
+  const arrivalTime = readFieldValue('arrivalTime');
+  const price = readFieldValue('price');
+  const flightClass = readFieldValue('class');
+  
+  // Get image
+  let imageDiv = row.querySelector('[data-aue-prop="image"]');
+  if (!imageDiv) {
+    imageDiv = row.querySelector(':scope > div:nth-child(1)');
+  }
+  
+  // Clear and rebuild the structure
+  const originalChildren = Array.from(row.children);
+  row.innerHTML = '';
+  
+  // Create image container
+  const imageContainer = createElement('div', 'flight-card-image');
+  if (imageDiv) {
+    // Try to preserve the image structure
+    const picture = imageDiv.querySelector('picture');
+    const img = imageDiv.querySelector('img');
+    const link = imageDiv.querySelector('a');
+    
+    if (picture) {
+      imageContainer.appendChild(picture.cloneNode(true));
+    } else if (img) {
+      const newImg = img.cloneNode(true);
+      imageContainer.appendChild(newImg);
+    } else if (link) {
+      const newLink = link.cloneNode(true);
+      imageContainer.appendChild(newLink);
+    } else {
+      // Create image from URL if available
+      const imageUrl = imageDiv.textContent?.trim() || imageDiv.querySelector('div')?.textContent?.trim() || '';
+      if (imageUrl) {
+        const newImg = createElement('img', '');
+        newImg.src = imageUrl;
+        newImg.alt = `${toName} destination`;
+        imageContainer.appendChild(newImg);
+      }
+    }
+  }
+  
+  // Create details container
+  const detailsContainer = createElement('div', 'flight-card-details');
+  
+  const route = createElement('div', 'flight-route');
+  route.textContent = `${fromName || ''} (${from || ''}) to ${toName || ''} (${to || ''})`;
+  
+  const times = createElement('div', 'flight-times');
+  times.innerHTML = `
+    <div class="flight-time">
+      <span class="flight-airport">${from || ''}</span>
+      <span class="flight-time-value">${departureTime || ''}</span>
+    </div>
+    <div class="flight-time">
+      <span class="flight-airport">${to || ''}</span>
+      <span class="flight-time-value">${arrivalTime || ''}</span>
+    </div>
+  `;
+  
+  detailsContainer.appendChild(route);
+  detailsContainer.appendChild(times);
+  
+  // Create price container
+  const priceContainer = createElement('div', 'flight-card-price');
+  const priceClass = createElement('div', 'flight-class');
+  priceClass.textContent = flightClass || 'Standard';
+  
+  const priceEl = createElement('div', 'flight-price');
+  priceEl.textContent = price ? `$${parseFloat(price).toFixed(2)}` : '$0.00';
+  
+  const selectButton = createElement('button', 'flight-select-button', 'Select');
+  selectButton.addEventListener('click', () => {
+    handleFlightSelect({
+      from,
+      to,
+      fromName,
+      toName,
+      departureTime,
+      arrivalTime,
+      price: parseFloat(price) || 0,
+      class: flightClass
+    });
+  });
+  
+  priceContainer.appendChild(priceClass);
+  priceContainer.appendChild(priceEl);
+  priceContainer.appendChild(selectButton);
+  
+  // Assemble the card
+  row.appendChild(imageContainer);
+  row.appendChild(detailsContainer);
+  row.appendChild(priceContainer);
 }
 
 // Read flight item from a block child (row)
@@ -391,74 +532,83 @@ export default async function decorate(block) {
     }
   });
   
-  let flights = [];
-  let from = '';
-  let to = '';
-  let date = '';
-  
-  // If URL parameters are present, use sample data based on route
+  // Check if URL parameters are present - if so, use sample data
   if (urlFrom && urlTo) {
-    from = urlFrom;
-    to = urlTo;
-    date = urlDate || config.defaultDate;
-    const route = `${from}-${to}`;
-    flights = SAMPLE_FLIGHTS[route] || [];
-  } else {
-    // No URL params - read authorable flight items from block children
-    // Flight items start after the 7 config divs (index 7+)
-    const children = Array.from(block.children);
-    const flightItems = [];
+    // URL params present - use sample data
+    const route = `${urlFrom}-${urlTo}`;
+    const flights = SAMPLE_FLIGHTS[route] || [];
+    displayFlightResults(flights, urlFrom, urlTo, urlDate || config.defaultDate, config);
+    return;
+  }
+  
+  // No URL params - process authorable flight items directly from block
+  const children = Array.from(block.children);
+  const flightItems = [];
+  
+  // Find flight items (starting from index 7, after config divs)
+  for (let i = 7; i < children.length; i++) {
+    const child = children[i];
+    // Check if this child is a flight item
+    const hasFlightModel = child.getAttribute('data-aue-model') === 'flight' || 
+                          child.querySelector('[data-aue-model="flight"]');
+    const hasFlightFields = child.children.length >= 9;
+    const hasFlightData = child.querySelector('[data-aue-prop="from"]') || 
+                         child.querySelector('[data-aue-prop="to"]');
     
-    // Read flight items from remaining children (starting from index 7)
-    for (let i = 7; i < children.length; i++) {
-      const child = children[i];
-      // Check if this child has flight item structure
-      const hasFlightModel = child.getAttribute('data-aue-model') === 'flight' || 
-                            child.querySelector('[data-aue-model="flight"]');
-      const hasFlightFields = child.children.length >= 9; // Flight items have at least 9 fields
-      
-      // Debug logging
-      console.log(`Child ${i}:`, {
-        hasFlightModel,
-        hasFlightFields,
-        childrenCount: child.children.length,
-        dataAueModel: child.getAttribute('data-aue-model'),
-        html: child.innerHTML.substring(0, 200)
-      });
-      
-      if (hasFlightModel || hasFlightFields) {
-        const flight = readFlightItem(child);
-        if (flight) {
-          flightItems.push(flight);
-          // Hide the config div but keep it for Universal Editor
-          child.style.display = 'none';
-        } else {
-          console.warn('Flight item detected but could not be parsed:', child);
-        }
-      }
-    }
-    
-    if (flightItems.length > 0) {
-      // Use authorable flight items
-      flights = flightItems;
-      // Determine from/to from first flight or config defaults
-      from = flights[0]?.from || config.defaultFrom;
-      to = flights[0]?.to || config.defaultTo;
-      date = config.defaultDate;
-    } else {
-      // No flight items and no URL params - show message
-      const noParams = createElement('div', 'flight-no-results');
-      noParams.innerHTML = `
-        <p>No flights found. Please add flight items to this block or use the flight search form.</p>
-        <p>You can add flights directly in the Universal Editor by clicking the "+" button.</p>
-        <a href="/" class="flight-back-link">← Back to Search</a>
-      `;
-      block.appendChild(noParams);
-      return;
+    if (hasFlightModel || hasFlightFields || hasFlightData) {
+      // This is a flight item - process it directly
+      processFlightItem(child);
+      flightItems.push(child);
     }
   }
   
-  // Display results with config
-  displayFlightResults(flights, from, to, date, config);
+  if (flightItems.length === 0) {
+    // No flight items found - show message
+    const noParams = createElement('div', 'flight-no-results');
+    noParams.innerHTML = `
+      <p>No flights found. Please add flight items to this block or use the flight search form.</p>
+      <p>You can add flights directly in the Universal Editor by clicking the "+" button.</p>
+      <a href="/" class="flight-back-link">← Back to Search</a>
+    `;
+    block.appendChild(noParams);
+    return;
+  }
+  
+  // Add title and subtitle if configured
+  if (config.title || config.subtitle) {
+    const titleSection = createElement('div', 'flight-results-header');
+    if (config.title) {
+      const title = createElement('h2', 'flight-results-title');
+      title.textContent = config.title;
+      titleSection.appendChild(title);
+    }
+    if (config.subtitle) {
+      const subtitle = createElement('p', 'flight-results-subtitle');
+      subtitle.textContent = config.subtitle;
+      titleSection.appendChild(subtitle);
+    }
+    // Insert before first flight item
+    if (flightItems[0]) {
+      block.insertBefore(titleSection, flightItems[0]);
+    } else {
+      block.appendChild(titleSection);
+    }
+  }
+  
+  // Add disclaimer
+  const disclaimer = createElement('p', 'flight-results-disclaimer');
+  disclaimer.textContent = 'Presented fares are per passenger, including fees and taxes. Additional services and amenities may vary per flight or change in time.';
+  if (flightItems[0]) {
+    block.insertBefore(disclaimer, flightItems[0]);
+  } else {
+    block.appendChild(disclaimer);
+  }
+  
+  // Wrap flight items in a container (move them)
+  const resultsList = createElement('div', 'flight-results-list');
+  flightItems.forEach(item => {
+    resultsList.appendChild(item);
+  });
+  block.appendChild(resultsList);
 }
 
