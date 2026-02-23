@@ -5,10 +5,13 @@
   font-family: var(--body-font-family, system-ui, sans-serif);
 }
 
-/* Hide field divs - they are only for UE editing, not for display */
+/* Hide field divs and p tags - they are only for UE editing, not for display */
 /* UE can still access these elements even when display:none */
 .flights > div[data-aue-prop],
-.flight-card > div[data-aue-prop] {
+.flight-card > div[data-aue-prop],
+.flight-card div[data-aue-prop],
+.flight-card p[data-aue-prop],
+.flight-card > div > p[data-aue-prop] {
   display: none !important;
 }
 
