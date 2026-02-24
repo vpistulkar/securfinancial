@@ -162,21 +162,47 @@ function applyColumnWidths(block, columnWidths) {
 export default function decorate(block) {
   // Read column widths from block configuration
   const readConfigValue = (fieldName) => {
+    console.log(`Columns block - Searching for config field: ${fieldName}`);
+    
+    // Debug: Log all children to see structure
+    console.log('Columns block - All block children:', Array.from(block.children).map((child, idx) => ({
+      index: idx,
+      tagName: child.tagName,
+      className: child.className,
+      dataAueProp: child.getAttribute('data-aue-prop'),
+      dataAueModel: child.getAttribute('data-aue-model'),
+      dataAueType: child.getAttribute('data-aue-type'),
+      textPreview: child.textContent?.substring(0, 100),
+      childrenCount: child.children.length
+    })));
+    
     // Try to find by data-aue-prop attribute anywhere in block
     let fieldElement = block.querySelector(`[data-aue-prop="${fieldName}"]`);
+    console.log(`Columns block - Found by querySelector:`, fieldElement ? 'YES' : 'NO');
+    
     if (fieldElement) {
+      console.log('Columns block - Field element structure:', {
+        tagName: fieldElement.tagName,
+        className: fieldElement.className,
+        innerHTML: fieldElement.innerHTML?.substring(0, 200),
+        textContent: fieldElement.textContent?.trim()
+      });
+      
       // Check for nested div or p tag
       const nestedDiv = fieldElement.querySelector('div');
       const nestedP = fieldElement.querySelector('p');
       if (nestedDiv) {
         const value = nestedDiv.textContent?.trim() || '';
+        console.log('Columns block - Found value in nested div:', value);
         if (value) return value;
       }
       if (nestedP) {
         const value = nestedP.textContent?.trim() || '';
+        console.log('Columns block - Found value in nested p:', value);
         if (value) return value;
       }
       const value = fieldElement.textContent?.trim() || '';
+      console.log('Columns block - Found value in element:', value);
       if (value) return value;
     }
     
@@ -184,6 +210,8 @@ export default function decorate(block) {
     const directChild = Array.from(block.children).find(child => 
       child.getAttribute('data-aue-prop') === fieldName
     );
+    console.log(`Columns block - Found as direct child:`, directChild ? 'YES' : 'NO');
+    
     if (directChild) {
       const nestedDiv = directChild.querySelector('div');
       const nestedP = directChild.querySelector('p');
@@ -198,6 +226,14 @@ export default function decorate(block) {
       const value = directChild.textContent?.trim() || '';
       if (value) return value;
     }
+    
+    // Try to find in all descendants (maybe it's nested deeper)
+    const allWithProp = block.querySelectorAll(`[data-aue-prop]`);
+    console.log('Columns block - All elements with data-aue-prop:', Array.from(allWithProp).map(el => ({
+      prop: el.getAttribute('data-aue-prop'),
+      tagName: el.tagName,
+      textContent: el.textContent?.trim()?.substring(0, 50)
+    })));
     
     return '';
   };
