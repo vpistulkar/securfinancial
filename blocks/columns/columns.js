@@ -99,58 +99,161 @@ function isVideoLink(link) {
     }
 }
 
+// Process a single column for alignment
+function processColumnAlignment(col) {
+  // Skip if already processed
+  if (col._alignmentProcessed) {
+    return;
+  }
+  
+  // Ensure column has proper UE attributes for recognition and + icon functionality
+  // These attributes are CRITICAL for UE to show the + icon and allow adding child components
+  if (!col.hasAttribute('data-aue-model')) {
+    col.setAttribute('data-aue-model', 'column');
+  }
+  if (!col.hasAttribute('data-aue-type')) {
+    col.setAttribute('data-aue-type', 'component');
+  }
+  // CRITICAL: data-aue-filter tells UE what components can be added as children
+  if (!col.hasAttribute('data-aue-filter')) {
+    col.setAttribute('data-aue-filter', 'column');
+  }
+  // data-aue-behavior helps UE recognize this as a container component
+  if (!col.hasAttribute('data-aue-behavior')) {
+    col.setAttribute('data-aue-behavior', 'component');
+  }
+  
+  // Try to find alignment value in column structure
+  let alignmentDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
+  
+  // Only process if alignment field exists (UE should create it)
+  // Don't create it ourselves as it might interfere with UE's structure
+  if (!alignmentDiv) {
+    // If it doesn't exist, just apply default vertical alignment
+    col.classList.remove('columns-item-horizontal', 'columns-item-vertical');
+    col.classList.add('columns-item-vertical');
+    col._alignmentProcessed = true;
+    return;
+  }
+  
+  // Function to update alignment classes based on current value
+  const updateAlignment = () => {
+    // Re-find alignmentDiv in case it was replaced by UE
+    let currentAlignmentDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
+    if (!currentAlignmentDiv) {
+      currentAlignmentDiv = alignmentDiv; // Fallback to original
+    }
+    
+    // Read the alignment value - check multiple possible locations
+    let alignmentValue = 'vertical'; // default
+    
+    if (currentAlignmentDiv) {
+      // First, try to find the value in the alignment div
+      const alignmentP = currentAlignmentDiv.querySelector('p');
+      if (alignmentP) {
+        alignmentValue = alignmentP.textContent?.trim() || currentAlignmentDiv.textContent?.trim() || 'vertical';
+      } else {
+        alignmentValue = currentAlignmentDiv.textContent?.trim() || 'vertical';
+      }
+      
+      // Also check if the div itself has the value as an attribute or data attribute
+      if (!alignmentValue || alignmentValue === 'vertical') {
+        const attrValue = currentAlignmentDiv.getAttribute('value') || 
+                         currentAlignmentDiv.getAttribute('data-value') ||
+                         currentAlignmentDiv.dataset.value;
+        if (attrValue && (attrValue === 'horizontal' || attrValue === 'vertical')) {
+          alignmentValue = attrValue;
+        }
+      }
+    }
+    
+    // Normalize the value
+    if (alignmentValue !== 'horizontal' && alignmentValue !== 'vertical') {
+      alignmentValue = 'vertical';
+    }
+    
+    // Remove both classes first
+    col.classList.remove('columns-item-horizontal', 'columns-item-vertical');
+    
+    // Apply the correct class based on current value
+    if (alignmentValue === 'horizontal') {
+      col.classList.add('columns-item-horizontal');
+    } else {
+      col.classList.add('columns-item-vertical');
+    }
+  };
+  
+  // Initial alignment update
+  updateAlignment();
+  
+  // Hide the alignment config div (but keep it in DOM for UE)
+  alignmentDiv.style.display = 'none';
+  
+  // Set up MutationObserver to watch for changes to the alignment field
+  // This ensures the classes update when the user changes the value in UE
+  if (!col._alignmentObserver) {
+    const observer = new MutationObserver(() => {
+      // Always update when any mutation occurs
+      updateAlignment();
+    });
+    
+    // Observe the alignment div and its children for ALL changes
+    observer.observe(alignmentDiv, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeOldValue: false
+    });
+    
+    // Also observe the column itself in case UE replaces the alignmentDiv
+    observer.observe(col, {
+      childList: true,
+      subtree: false
+    });
+    
+    col._alignmentObserver = observer;
+    col._updateAlignment = updateAlignment; // Store reference for UE events
+    
+    // Also set up a periodic check as a fallback (every 500ms when in author mode)
+    // This catches cases where MutationObserver might miss changes
+    if (document.documentElement.classList.contains('adobe-ue-edit')) {
+      col._alignmentInterval = setInterval(() => {
+        updateAlignment();
+      }, 500);
+    }
+  }
+  
+  // Cleanup function to remove interval when column is removed
+  if (col._cleanupAlignment) {
+    col._cleanupAlignment();
+  }
+  col._cleanupAlignment = () => {
+    if (col._alignmentInterval) {
+      clearInterval(col._alignmentInterval);
+      col._alignmentInterval = null;
+    }
+  };
+  
+  // Mark as processed
+  col._alignmentProcessed = true;
+}
+
 export default function decorate(block) {
+  // Prevent re-decoration
+  if (block.dataset.decorated === 'true') {
+    return;
+  }
+  
   const cols = [...block.firstElementChild.children];
   block.classList.add(`columns-${cols.length}-cols`);
 
   // setup image columns
   [...block.children].forEach((row) => {
     row.classList.add('columns-row');
-    //const firstChild = row.querySelector(':scope > div:first-child');
     [...row.children].forEach((col) => {
-      // Ensure column has data-aue-model attribute for UE recognition
-      if (!col.hasAttribute('data-aue-model')) {
-        col.setAttribute('data-aue-model', 'column');
-        col.setAttribute('data-aue-type', 'component');
-      }
-      
-      // Read itemAlignment style from column config
-      // Check for data-aue-prop="itemAlignment" or find it in the column structure
-      let itemAlignment = 'vertical'; // default
-      
-      // Try to find alignment value in column structure
-      // It might be in a div with data-aue-prop="itemAlignment" or as a direct child
-      let alignmentDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
-      
-      // If alignment field doesn't exist, create it for UE editing
-      if (!alignmentDiv) {
-        alignmentDiv = document.createElement('div');
-        alignmentDiv.setAttribute('data-aue-prop', 'itemAlignment');
-        alignmentDiv.setAttribute('data-aue-type', 'text');
-        alignmentDiv.setAttribute('data-aue-label', 'Item Alignment');
-        const alignmentP = document.createElement('p');
-        alignmentP.textContent = 'vertical';
-        alignmentDiv.appendChild(alignmentP);
-        // Insert at the beginning of the column
-        col.insertBefore(alignmentDiv, col.firstChild);
-      }
-      
-      // Read the alignment value
-      const alignmentP = alignmentDiv.querySelector('p');
-      const alignmentValue = alignmentP?.textContent?.trim() || alignmentDiv.textContent?.trim();
-      if (alignmentValue === 'horizontal' || alignmentValue === 'vertical') {
-        itemAlignment = alignmentValue;
-      }
-      
-      // Apply alignment class to column
-      if (itemAlignment === 'horizontal') {
-        col.classList.add('columns-item-horizontal');
-      } else {
-        col.classList.add('columns-item-vertical');
-      }
-      
-      // Hide the alignment config div
-      alignmentDiv.style.display = 'none';
+      // Process alignment for this column
+      processColumnAlignment(col);
       
       const pic = col.querySelector('picture');
       if (pic) {
@@ -198,4 +301,44 @@ export default function decorate(block) {
       }
     });
   });
+  
+  // Mark block as decorated
+  block.dataset.decorated = 'true';
+  
+  // Listen for UE events to process new columns when they're added
+  if (!block._ueListenerAdded) {
+    const handleUEEvent = (event) => {
+      // Check if the event is related to this block or its children
+      const resource = event.detail?.request?.target?.resource;
+      const blockResource = block.getAttribute('data-aue-resource');
+      
+      if (resource && blockResource && resource.startsWith(blockResource)) {
+        // Small delay to let UE finish updating the DOM
+        setTimeout(() => {
+          // Re-process all columns in case new ones were added or properties changed
+          [...block.children].forEach((row) => {
+            [...row.children].forEach((col) => {
+              // If already processed, just update alignment (property might have changed)
+              if (col._alignmentProcessed && col._updateAlignment) {
+                col._updateAlignment();
+              } else if (!col._alignmentProcessed) {
+                // Process new columns
+                processColumnAlignment(col);
+              }
+            });
+          });
+        }, 100);
+      }
+    };
+    
+    // Listen for various UE events
+    const main = document.querySelector('main');
+    if (main) {
+      main.addEventListener('aue:content-add', handleUEEvent);
+      main.addEventListener('aue:content-update', handleUEEvent);
+      main.addEventListener('aue:content-patch', handleUEEvent); // Property changes
+    }
+    
+    block._ueListenerAdded = true;
+  }
 }
