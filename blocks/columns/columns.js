@@ -127,9 +127,21 @@ function processColumnAlignment(col) {
   
   // Function to update alignment classes based on current value
   const updateAlignment = () => {
-    // Read the alignment value
+    // Read the alignment value - check multiple possible locations
+    let alignmentValue = 'vertical'; // default
+    
+    // First, try to find the value in the alignment div
     const alignmentP = alignmentDiv.querySelector('p');
-    const alignmentValue = alignmentP?.textContent?.trim() || alignmentDiv.textContent?.trim();
+    if (alignmentP) {
+      alignmentValue = alignmentP.textContent?.trim() || alignmentDiv.textContent?.trim() || 'vertical';
+    } else {
+      alignmentValue = alignmentDiv.textContent?.trim() || 'vertical';
+    }
+    
+    // Normalize the value
+    if (alignmentValue !== 'horizontal' && alignmentValue !== 'vertical') {
+      alignmentValue = 'vertical';
+    }
     
     // Remove both classes first
     col.classList.remove('columns-item-horizontal', 'columns-item-vertical');
@@ -151,28 +163,28 @@ function processColumnAlignment(col) {
   // Set up MutationObserver to watch for changes to the alignment field
   // This ensures the classes update when the user changes the value in UE
   if (!col._alignmentObserver) {
-    const observer = new MutationObserver((mutations) => {
-      // Only update if the mutation is actually changing the text content
-      const hasRelevantChange = mutations.some(mutation => {
-        if (mutation.type === 'characterData' || mutation.type === 'childList') {
-          return true;
-        }
-        return false;
-      });
-      
-      if (hasRelevantChange) {
-        updateAlignment();
-      }
+    const observer = new MutationObserver(() => {
+      // Always update when any mutation occurs
+      updateAlignment();
     });
     
-    // Observe the alignment div and its children for changes
+    // Observe the alignment div and its children for ALL changes
     observer.observe(alignmentDiv, {
       childList: true,
       subtree: true,
-      characterData: true
+      characterData: true,
+      attributes: true,
+      attributeOldValue: false
+    });
+    
+    // Also observe the column itself in case UE replaces the alignmentDiv
+    observer.observe(col, {
+      childList: true,
+      subtree: false
     });
     
     col._alignmentObserver = observer;
+    col._updateAlignment = updateAlignment; // Store reference for UE events
   }
   
   // Mark as processed
@@ -255,11 +267,14 @@ export default function decorate(block) {
       if (resource && blockResource && resource.startsWith(blockResource)) {
         // Small delay to let UE finish updating the DOM
         setTimeout(() => {
-          // Re-process all columns in case new ones were added
+          // Re-process all columns in case new ones were added or properties changed
           [...block.children].forEach((row) => {
             [...row.children].forEach((col) => {
-              // Only process columns that haven't been processed yet
-              if (!col._alignmentProcessed) {
+              // If already processed, just update alignment (property might have changed)
+              if (col._alignmentProcessed && col._updateAlignment) {
+                col._updateAlignment();
+              } else if (!col._alignmentProcessed) {
+                // Process new columns
                 processColumnAlignment(col);
               }
             });
@@ -268,9 +283,13 @@ export default function decorate(block) {
       }
     };
     
-    // Listen for content-add events (when new items are added)
-    document.querySelector('main')?.addEventListener('aue:content-add', handleUEEvent);
-    document.querySelector('main')?.addEventListener('aue:content-update', handleUEEvent);
+    // Listen for various UE events
+    const main = document.querySelector('main');
+    if (main) {
+      main.addEventListener('aue:content-add', handleUEEvent);
+      main.addEventListener('aue:content-update', handleUEEvent);
+      main.addEventListener('aue:content-patch', handleUEEvent); // Property changes
+    }
     
     block._ueListenerAdded = true;
   }
