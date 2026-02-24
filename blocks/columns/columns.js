@@ -165,11 +165,14 @@ export default function decorate(block) {
     
     // Apply custom widths if provided
     if (columnWidths.length > 0) {
+      row.classList.add('columns-custom-widths');
       [...row.children].forEach((col, colIndex) => {
         if (colIndex < columnWidths.length) {
           const width = columnWidths[colIndex];
+          col.classList.add('columns-custom-width');
           col.style.flex = `0 0 ${width}%`;
           col.style.maxWidth = `${width}%`;
+          col.style.width = `${width}%`;
         }
       });
     }

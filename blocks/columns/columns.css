@@ -55,8 +55,11 @@
     order: unset;
   }
   
-  /* Custom column widths are applied via inline styles from JavaScript */
-  /* Inline styles will override the default flex: 1 */
+  /* Custom column widths - inline styles from JavaScript override flex: 1 */
+  .columns-custom-widths > div.columns-custom-width {
+    flex-shrink: 0;
+    flex-grow: 0;
+  }
 }
 
 
