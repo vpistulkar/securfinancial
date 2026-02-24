@@ -108,27 +108,52 @@ function applyColumnWidths(block, columnWidths) {
   
   console.log('Columns block - Applying widths:', columnWidths);
   
-  [...block.children].forEach((row, rowIndex) => {
+  // Find all rows (including those that might not have columns-row class yet)
+  const rows = Array.from(block.children).filter(row => {
     // Skip config divs (hidden ones)
-    if (row.style.display === 'none' || !row.classList.contains('columns-row')) {
-      return;
+    if (row.style.display === 'none') return false;
+    // Include rows that have column content or already have columns-row class
+    return row.classList.contains('columns-row') || 
+           row.children.length > 0 ||
+           row.querySelector('picture') || 
+           row.querySelector('img') || 
+           row.querySelector('p');
+  });
+  
+  console.log('Columns block - Found rows:', rows.length);
+  
+  rows.forEach((row, rowIndex) => {
+    // Ensure row has the class
+    if (!row.classList.contains('columns-row')) {
+      row.classList.add('columns-row');
     }
     
     // Apply custom widths
     row.classList.add('columns-custom-widths');
-    [...row.children].forEach((col, colIndex) => {
+    const cols = Array.from(row.children);
+    console.log(`Columns block - Row ${rowIndex} has ${cols.length} columns`);
+    
+    cols.forEach((col, colIndex) => {
       if (colIndex < columnWidths.length) {
         const width = columnWidths[colIndex];
         col.classList.add('columns-custom-width');
+        // Apply inline styles - these should override CSS
         col.style.flex = `0 0 ${width}%`;
         col.style.maxWidth = `${width}%`;
         col.style.width = `${width}%`;
-        console.log(`Columns block - Row ${rowIndex}, Column ${colIndex}: Applied width ${width}%`, {
-          flex: col.style.flex,
-          maxWidth: col.style.maxWidth,
-          width: col.style.width,
-          computedWidth: window.getComputedStyle(col).width
-        });
+        
+        // Log after a small delay to see computed styles
+        setTimeout(() => {
+          const computed = window.getComputedStyle(col);
+          console.log(`Columns block - Row ${rowIndex}, Column ${colIndex}: Applied width ${width}%`, {
+            inlineFlex: col.style.flex,
+            inlineMaxWidth: col.style.maxWidth,
+            inlineWidth: col.style.width,
+            computedFlex: computed.flex,
+            computedWidth: computed.width,
+            computedMaxWidth: computed.maxWidth
+          });
+        }, 100);
       }
     });
   });
@@ -213,21 +238,6 @@ export default function decorate(block) {
   };
 
   let columnWidths = processColumnWidths();
-  
-  // Parse column widths
-  let columnWidths = [];
-  if (columnWidthsStr) {
-    columnWidths = columnWidthsStr.split(',').map(w => {
-      const num = parseFloat(w.trim());
-      return isNaN(num) ? null : num;
-    }).filter(w => w !== null);
-    
-    // Normalize percentages to sum to 100 if they don't
-    const sum = columnWidths.reduce((a, b) => a + b, 0);
-    if (sum > 0 && sum !== 100) {
-      columnWidths = columnWidths.map(w => (w / sum) * 100);
-    }
-  }
 
   // Hide config divs but keep them for Universal Editor
   Array.from(block.children).forEach((child, index) => {
