@@ -100,12 +100,63 @@ function isVideoLink(link) {
 }
 
 export default function decorate(block) {
-  const cols = [...block.firstElementChild.children];
+  // Read column widths from block configuration
+  // Config fields are in the first few children: columns, rows, columnWidths
+  const readConfigValue = (index) => {
+    const configDiv = block.querySelector(`:scope > div:nth-child(${index}) > div`);
+    return configDiv?.textContent?.trim() || '';
+  };
+
+  const columnWidthsStr = readConfigValue(3); // Third config field (after columns and rows)
+  
+  // Parse column widths
+  let columnWidths = [];
+  if (columnWidthsStr) {
+    columnWidths = columnWidthsStr.split(',').map(w => {
+      const num = parseFloat(w.trim());
+      return isNaN(num) ? null : num;
+    }).filter(w => w !== null);
+    
+    // Normalize percentages to sum to 100 if they don't
+    const sum = columnWidths.reduce((a, b) => a + b, 0);
+    if (sum > 0 && sum !== 100) {
+      columnWidths = columnWidths.map(w => (w / sum) * 100);
+    }
+  }
+
+  // Hide config divs but keep them for Universal Editor
+  for (let i = 1; i <= 3; i++) {
+    const configDiv = block.querySelector(`:scope > div:nth-child(${i})`);
+    if (configDiv) {
+      configDiv.style.display = 'none';
+    }
+  }
+
+  // Find the first row to determine column count
+  const firstRow = block.querySelector(':scope > div:nth-child(4)') || block.firstElementChild;
+  const cols = firstRow ? [...firstRow.children] : [];
   block.classList.add(`columns-${cols.length}-cols`);
 
   // setup image columns
-  [...block.children].forEach((row) => {
+  [...block.children].forEach((row, rowIndex) => {
+    // Skip config divs (first 3 children are config fields)
+    if (rowIndex < 3) {
+      return; // Already hidden above
+    }
+    
     row.classList.add('columns-row');
+    
+    // Apply custom widths if provided
+    if (columnWidths.length > 0) {
+      [...row.children].forEach((col, colIndex) => {
+        if (colIndex < columnWidths.length) {
+          const width = columnWidths[colIndex];
+          col.style.flex = `0 0 ${width}%`;
+          col.style.maxWidth = `${width}%`;
+        }
+      });
+    }
+    
     //const firstChild = row.querySelector(':scope > div:first-child');
     [...row.children].forEach((col) => {
       const pic = col.querySelector('picture');
