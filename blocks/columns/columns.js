@@ -108,31 +108,38 @@ export default function decorate(block) {
     row.classList.add('columns-row');
     //const firstChild = row.querySelector(':scope > div:first-child');
     [...row.children].forEach((col) => {
+      // Ensure column has data-aue-model attribute for UE recognition
+      if (!col.hasAttribute('data-aue-model')) {
+        col.setAttribute('data-aue-model', 'column');
+        col.setAttribute('data-aue-type', 'component');
+      }
+      
       // Read itemAlignment style from column config
       // Check for data-aue-prop="itemAlignment" or find it in the column structure
       let itemAlignment = 'vertical'; // default
       
       // Try to find alignment value in column structure
       // It might be in a div with data-aue-prop="itemAlignment" or as a direct child
-      const alignmentDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
-      if (alignmentDiv) {
-        const alignmentP = alignmentDiv.querySelector('p');
-        const alignmentValue = alignmentP?.textContent?.trim() || alignmentDiv.textContent?.trim();
-        if (alignmentValue === 'horizontal' || alignmentValue === 'vertical') {
-          itemAlignment = alignmentValue;
-        }
-      } else {
-        // Check if it's a direct child div (might be the first or last config div)
-        const children = Array.from(col.children);
-        for (const child of children) {
-          const p = child.querySelector('p');
-          const text = p?.textContent?.trim() || child.textContent?.trim();
-          if (text === 'horizontal' || text === 'vertical') {
-            // Check if this might be the alignment field by checking siblings
-            itemAlignment = text;
-            break;
-          }
-        }
+      let alignmentDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
+      
+      // If alignment field doesn't exist, create it for UE editing
+      if (!alignmentDiv) {
+        alignmentDiv = document.createElement('div');
+        alignmentDiv.setAttribute('data-aue-prop', 'itemAlignment');
+        alignmentDiv.setAttribute('data-aue-type', 'text');
+        alignmentDiv.setAttribute('data-aue-label', 'Item Alignment');
+        const alignmentP = document.createElement('p');
+        alignmentP.textContent = 'vertical';
+        alignmentDiv.appendChild(alignmentP);
+        // Insert at the beginning of the column
+        col.insertBefore(alignmentDiv, col.firstChild);
+      }
+      
+      // Read the alignment value
+      const alignmentP = alignmentDiv.querySelector('p');
+      const alignmentValue = alignmentP?.textContent?.trim() || alignmentDiv.textContent?.trim();
+      if (alignmentValue === 'horizontal' || alignmentValue === 'vertical') {
+        itemAlignment = alignmentValue;
       }
       
       // Apply alignment class to column
@@ -142,10 +149,8 @@ export default function decorate(block) {
         col.classList.add('columns-item-vertical');
       }
       
-      // Hide the alignment config div if it exists
-      if (alignmentDiv) {
-        alignmentDiv.style.display = 'none';
-      }
+      // Hide the alignment config div
+      alignmentDiv.style.display = 'none';
       
       const pic = col.querySelector('picture');
       if (pic) {
