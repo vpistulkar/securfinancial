@@ -135,22 +135,45 @@ export default function decorate(block) {
         col.insertBefore(alignmentDiv, col.firstChild);
       }
       
-      // Read the alignment value
-      const alignmentP = alignmentDiv.querySelector('p');
-      const alignmentValue = alignmentP?.textContent?.trim() || alignmentDiv.textContent?.trim();
-      if (alignmentValue === 'horizontal' || alignmentValue === 'vertical') {
-        itemAlignment = alignmentValue;
-      }
+      // Function to update alignment classes based on current value
+      const updateAlignment = () => {
+        // Read the alignment value
+        const alignmentP = alignmentDiv.querySelector('p');
+        const alignmentValue = alignmentP?.textContent?.trim() || alignmentDiv.textContent?.trim();
+        
+        // Remove both classes first
+        col.classList.remove('columns-item-horizontal', 'columns-item-vertical');
+        
+        // Apply the correct class based on current value
+        if (alignmentValue === 'horizontal') {
+          col.classList.add('columns-item-horizontal');
+        } else {
+          col.classList.add('columns-item-vertical');
+        }
+      };
       
-      // Apply alignment class to column
-      if (itemAlignment === 'horizontal') {
-        col.classList.add('columns-item-horizontal');
-      } else {
-        col.classList.add('columns-item-vertical');
-      }
+      // Initial alignment update
+      updateAlignment();
       
       // Hide the alignment config div
       alignmentDiv.style.display = 'none';
+      
+      // Set up MutationObserver to watch for changes to the alignment field
+      // This ensures the classes update when the user changes the value in UE
+      if (!col._alignmentObserver) {
+        const observer = new MutationObserver(() => {
+          updateAlignment();
+        });
+        
+        // Observe the alignment div for changes
+        observer.observe(alignmentDiv, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+        
+        col._alignmentObserver = observer;
+      }
       
       const pic = col.querySelector('picture');
       if (pic) {
