@@ -99,11 +99,45 @@ function isVideoLink(link) {
     }
 }
 
+// Function to apply column widths to rows
+function applyColumnWidths(block, columnWidths) {
+  if (columnWidths.length === 0) {
+    console.log('Columns block - No custom widths to apply');
+    return;
+  }
+  
+  console.log('Columns block - Applying widths:', columnWidths);
+  
+  [...block.children].forEach((row, rowIndex) => {
+    // Skip config divs (hidden ones)
+    if (row.style.display === 'none' || !row.classList.contains('columns-row')) {
+      return;
+    }
+    
+    // Apply custom widths
+    row.classList.add('columns-custom-widths');
+    [...row.children].forEach((col, colIndex) => {
+      if (colIndex < columnWidths.length) {
+        const width = columnWidths[colIndex];
+        col.classList.add('columns-custom-width');
+        col.style.flex = `0 0 ${width}%`;
+        col.style.maxWidth = `${width}%`;
+        col.style.width = `${width}%`;
+        console.log(`Columns block - Row ${rowIndex}, Column ${colIndex}: Applied width ${width}%`, {
+          flex: col.style.flex,
+          maxWidth: col.style.maxWidth,
+          width: col.style.width,
+          computedWidth: window.getComputedStyle(col).width
+        });
+      }
+    });
+  });
+}
+
 export default function decorate(block) {
-  // Read column widths from block configuration (following flights block pattern)
-  // Try multiple approaches to find the config value
+  // Read column widths from block configuration
   const readConfigValue = (fieldName) => {
-    // First try: find by data-aue-prop attribute anywhere in block
+    // Try to find by data-aue-prop attribute anywhere in block
     let fieldElement = block.querySelector(`[data-aue-prop="${fieldName}"]`);
     if (fieldElement) {
       // Check for nested div or p tag
@@ -121,7 +155,7 @@ export default function decorate(block) {
       if (value) return value;
     }
     
-    // Second try: look for direct children with data-aue-prop (config fields are usually direct children)
+    // Try direct children with data-aue-prop
     const directChild = Array.from(block.children).find(child => 
       child.getAttribute('data-aue-prop') === fieldName
     );
@@ -140,18 +174,45 @@ export default function decorate(block) {
       if (value) return value;
     }
     
-    // Third try: index-based approach (for backwards compatibility)
-    const index = fieldName === 'columns' ? 1 : fieldName === 'rows' ? 2 : 3;
-    const div = block.querySelector(`:scope > div:nth-child(${index}) > div`);
-    if (div) {
-      const value = div.textContent?.trim() || '';
-      if (value) return value;
-    }
-    
     return '';
   };
 
-  const columnWidthsStr = readConfigValue('columnWidths');
+  // Function to parse and apply column widths
+  const processColumnWidths = () => {
+    const columnWidthsStr = readConfigValue('columnWidths');
+    console.log('Columns block - Reading columnWidths config:', columnWidthsStr || '(empty)');
+    
+    // Parse column widths
+    let columnWidths = [];
+    if (columnWidthsStr) {
+      const rawValues = columnWidthsStr.split(',');
+      console.log('Columns block - Raw values:', rawValues);
+      
+      columnWidths = rawValues.map(w => {
+        const num = parseFloat(w.trim());
+        return isNaN(num) ? null : num;
+      }).filter(w => w !== null);
+      
+      console.log('Columns block - Parsed values:', columnWidths);
+      
+      // Normalize percentages to sum to 100 if they don't
+      const sum = columnWidths.reduce((a, b) => a + b, 0);
+      console.log('Columns block - Sum of values:', sum);
+      
+      if (sum > 0 && sum !== 100) {
+        const original = [...columnWidths];
+        columnWidths = columnWidths.map(w => (w / sum) * 100);
+        console.log('Columns block - Normalized from', original, 'to', columnWidths);
+      }
+    } else {
+      console.log('Columns block - No columnWidths string found');
+    }
+    
+    console.log('Columns block - Final columnWidths array:', columnWidths);
+    return columnWidths;
+  };
+
+  let columnWidths = processColumnWidths();
   
   // Parse column widths
   let columnWidths = [];
@@ -168,22 +229,6 @@ export default function decorate(block) {
     }
   }
 
-  // Debug: log what we found
-  if (columnWidthsStr) {
-    console.log('Columns block - Found columnWidths:', columnWidthsStr);
-  } else {
-    console.log('Columns block - No columnWidths found. Checking DOM structure...');
-    // Debug: log all children to see structure
-    Array.from(block.children).forEach((child, index) => {
-      console.log(`Child ${index}:`, {
-        tagName: child.tagName,
-        dataAueProp: child.getAttribute('data-aue-prop'),
-        className: child.className,
-        textContent: child.textContent?.substring(0, 50)
-      });
-    });
-  }
-
   // Hide config divs but keep them for Universal Editor
   Array.from(block.children).forEach((child, index) => {
     // Check if this is a config field (has data-aue-prop matching columns model fields)
@@ -193,6 +238,27 @@ export default function decorate(block) {
     if (isConfigField) {
       child.style.display = 'none';
     }
+  });
+
+  // Set up MutationObserver to watch for config field changes (for Universal Editor)
+  const observer = new MutationObserver((mutations) => {
+    console.log('Columns block - DOM mutation detected', mutations.length, 'changes');
+    const newWidths = processColumnWidths();
+    if (newWidths.length > 0 && JSON.stringify(newWidths) !== JSON.stringify(columnWidths)) {
+      console.log('Columns block - Widths changed from', columnWidths, 'to', newWidths);
+      columnWidths = newWidths;
+      applyColumnWidths(block, columnWidths);
+    } else if (newWidths.length === 0 && columnWidths.length > 0) {
+      console.log('Columns block - Widths cleared');
+      columnWidths = [];
+    }
+  });
+  
+  // Observe the block for changes
+  observer.observe(block, {
+    childList: true,
+    subtree: true,
+    characterData: true
   });
 
   // Find first actual row (skip config divs)
@@ -222,20 +288,6 @@ export default function decorate(block) {
     }
     
     row.classList.add('columns-row');
-    
-    // Apply custom widths if provided
-    if (columnWidths.length > 0) {
-      row.classList.add('columns-custom-widths');
-      [...row.children].forEach((col, colIndex) => {
-        if (colIndex < columnWidths.length) {
-          const width = columnWidths[colIndex];
-          col.classList.add('columns-custom-width');
-          col.style.flex = `0 0 ${width}%`;
-          col.style.maxWidth = `${width}%`;
-          col.style.width = `${width}%`;
-        }
-      });
-    }
     
     //const firstChild = row.querySelector(':scope > div:first-child');
     [...row.children].forEach((col) => {
@@ -285,4 +337,7 @@ export default function decorate(block) {
       }
     });
   });
+  
+  // Apply column widths after processing rows
+  applyColumnWidths(block, columnWidths);
 }
