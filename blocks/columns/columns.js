@@ -108,6 +108,45 @@ export default function decorate(block) {
     row.classList.add('columns-row');
     //const firstChild = row.querySelector(':scope > div:first-child');
     [...row.children].forEach((col) => {
+      // Read itemAlignment style from column config
+      // Check for data-aue-prop="itemAlignment" or find it in the column structure
+      let itemAlignment = 'vertical'; // default
+      
+      // Try to find alignment value in column structure
+      // It might be in a div with data-aue-prop="itemAlignment" or as a direct child
+      const alignmentDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
+      if (alignmentDiv) {
+        const alignmentP = alignmentDiv.querySelector('p');
+        const alignmentValue = alignmentP?.textContent?.trim() || alignmentDiv.textContent?.trim();
+        if (alignmentValue === 'horizontal' || alignmentValue === 'vertical') {
+          itemAlignment = alignmentValue;
+        }
+      } else {
+        // Check if it's a direct child div (might be the first or last config div)
+        const children = Array.from(col.children);
+        for (const child of children) {
+          const p = child.querySelector('p');
+          const text = p?.textContent?.trim() || child.textContent?.trim();
+          if (text === 'horizontal' || text === 'vertical') {
+            // Check if this might be the alignment field by checking siblings
+            itemAlignment = text;
+            break;
+          }
+        }
+      }
+      
+      // Apply alignment class to column
+      if (itemAlignment === 'horizontal') {
+        col.classList.add('columns-item-horizontal');
+      } else {
+        col.classList.add('columns-item-vertical');
+      }
+      
+      // Hide the alignment config div if it exists
+      if (alignmentDiv) {
+        alignmentDiv.style.display = 'none';
+      }
+      
       const pic = col.querySelector('picture');
       if (pic) {
         const picWrapper = pic.closest('div');
