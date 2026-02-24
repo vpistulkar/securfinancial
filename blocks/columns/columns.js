@@ -165,7 +165,7 @@ export default function decorate(block) {
     console.log(`Columns block - Searching for config field: ${fieldName}`);
     
     // Debug: Log all children to see structure
-    console.log('Columns block - All block children:', Array.from(block.children).map((child, idx) => ({
+    const childrenInfo = Array.from(block.children).map((child, idx) => ({
       index: idx,
       tagName: child.tagName,
       className: child.className,
@@ -173,8 +173,18 @@ export default function decorate(block) {
       dataAueModel: child.getAttribute('data-aue-model'),
       dataAueType: child.getAttribute('data-aue-type'),
       textPreview: child.textContent?.substring(0, 100),
-      childrenCount: child.children.length
-    })));
+      childrenCount: child.children.length,
+      allAttributes: Array.from(child.attributes).map(attr => `${attr.name}="${attr.value}"`).join(', ')
+    }));
+    console.log('Columns block - All block children:', childrenInfo);
+    
+    // Also check block's own attributes
+    console.log('Columns block - Block attributes:', {
+      dataAueResource: block.getAttribute('data-aue-resource'),
+      dataAueModel: block.getAttribute('data-aue-model'),
+      dataAueType: block.getAttribute('data-aue-type'),
+      allDataAttrs: Array.from(block.attributes).filter(attr => attr.name.startsWith('data-')).map(attr => `${attr.name}="${attr.value}"`)
+    });
     
     // Try to find by data-aue-prop attribute anywhere in block
     let fieldElement = block.querySelector(`[data-aue-prop="${fieldName}"]`);
@@ -229,11 +239,25 @@ export default function decorate(block) {
     
     // Try to find in all descendants (maybe it's nested deeper)
     const allWithProp = block.querySelectorAll(`[data-aue-prop]`);
-    console.log('Columns block - All elements with data-aue-prop:', Array.from(allWithProp).map(el => ({
+    const propInfo = Array.from(allWithProp).map(el => ({
       prop: el.getAttribute('data-aue-prop'),
       tagName: el.tagName,
-      textContent: el.textContent?.trim()?.substring(0, 50)
-    })));
+      className: el.className,
+      textContent: el.textContent?.trim()?.substring(0, 50),
+      innerHTML: el.innerHTML?.substring(0, 100)
+    }));
+    console.log('Columns block - All elements with data-aue-prop:', propInfo);
+    
+    // Check if config might be in the block's dataset or as a data attribute
+    const blockDataset = {};
+    Array.from(block.attributes).forEach(attr => {
+      if (attr.name.startsWith('data-') && !attr.name.startsWith('data-aue-')) {
+        blockDataset[attr.name] = attr.value;
+      }
+    });
+    if (Object.keys(blockDataset).length > 0) {
+      console.log('Columns block - Block data attributes (non-aue):', blockDataset);
+    }
     
     return '';
   };
@@ -288,24 +312,67 @@ export default function decorate(block) {
 
   // Set up MutationObserver to watch for config field changes (for Universal Editor)
   const observer = new MutationObserver((mutations) => {
-    console.log('Columns block - DOM mutation detected', mutations.length, 'changes');
-    const newWidths = processColumnWidths();
-    if (newWidths.length > 0 && JSON.stringify(newWidths) !== JSON.stringify(columnWidths)) {
-      console.log('Columns block - Widths changed from', columnWidths, 'to', newWidths);
-      columnWidths = newWidths;
-      applyColumnWidths(block, columnWidths);
-    } else if (newWidths.length === 0 && columnWidths.length > 0) {
-      console.log('Columns block - Widths cleared');
-      columnWidths = [];
+    let shouldCheck = false;
+    mutations.forEach(mutation => {
+      // Check if any added nodes have data-aue-prop="columnWidths"
+      if (mutation.addedNodes.length > 0) {
+        Array.from(mutation.addedNodes).forEach(node => {
+          if (node.nodeType === 1) { // Element node
+            if (node.getAttribute('data-aue-prop') === 'columnWidths' || 
+                node.querySelector('[data-aue-prop="columnWidths"]')) {
+              shouldCheck = true;
+            }
+          }
+        });
+      }
+      // Check if text content changed in existing nodes
+      if (mutation.type === 'characterData' || mutation.type === 'childList') {
+        const target = mutation.target;
+        if (target.getAttribute && target.getAttribute('data-aue-prop') === 'columnWidths') {
+          shouldCheck = true;
+        }
+        if (target.querySelector && target.querySelector('[data-aue-prop="columnWidths"]')) {
+          shouldCheck = true;
+        }
+      }
+    });
+    
+    if (shouldCheck) {
+      console.log('Columns block - DOM mutation detected that might affect columnWidths');
+      const newWidths = processColumnWidths();
+      if (newWidths.length > 0 && JSON.stringify(newWidths) !== JSON.stringify(columnWidths)) {
+        console.log('Columns block - Widths changed from', columnWidths, 'to', newWidths);
+        columnWidths = newWidths;
+        applyColumnWidths(block, columnWidths);
+      } else if (newWidths.length === 0 && columnWidths.length > 0) {
+        console.log('Columns block - Widths cleared');
+        columnWidths = [];
+      }
     }
   });
   
-  // Observe the block for changes
+  // Observe the block for changes - watch more aggressively
   observer.observe(block, {
     childList: true,
     subtree: true,
-    characterData: true
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['data-aue-prop', 'data-aue-model']
   });
+  
+  // Also try to read from Universal Editor's data model if available
+  // This is a fallback if config fields aren't in DOM yet
+  if (window.aem && window.aem.utils) {
+    try {
+      const blockResource = block.getAttribute('data-aue-resource');
+      if (blockResource) {
+        console.log('Columns block - Attempting to read from AEM data model:', blockResource);
+        // This is a placeholder - actual implementation depends on AEM API
+      }
+    } catch (e) {
+      console.log('Columns block - Could not read from AEM data model:', e);
+    }
+  }
 
   // Find first actual row (skip config divs)
   let firstRow = null;
@@ -386,4 +453,22 @@ export default function decorate(block) {
   
   // Apply column widths after processing rows
   applyColumnWidths(block, columnWidths);
+  
+  // Periodic check for config fields (in case they're added later)
+  // This is a fallback if MutationObserver doesn't catch it
+  let checkCount = 0;
+  const maxChecks = 10; // Check 10 times over 5 seconds
+  const checkInterval = setInterval(() => {
+    checkCount++;
+    const newWidths = processColumnWidths();
+    if (newWidths.length > 0 && JSON.stringify(newWidths) !== JSON.stringify(columnWidths)) {
+      console.log('Columns block - Periodic check found widths:', newWidths);
+      columnWidths = newWidths;
+      applyColumnWidths(block, columnWidths);
+      clearInterval(checkInterval);
+    } else if (checkCount >= maxChecks) {
+      console.log('Columns block - Periodic check completed, no config fields found');
+      clearInterval(checkInterval);
+    }
+  }, 500); // Check every 500ms
 }
