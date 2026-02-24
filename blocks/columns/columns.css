@@ -54,12 +54,6 @@
     flex: 1;
     order: unset;
   }
-  
-  /* Custom column widths - inline styles from JavaScript override flex: 1 */
-  .columns-custom-widths > div.columns-custom-width {
-    flex-shrink: 0 !important;
-    flex-grow: 0 !important;
-  }
 }
 
 

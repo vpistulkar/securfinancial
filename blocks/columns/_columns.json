@@ -33,14 +33,6 @@
           "name": "rows",
           "value": "",
           "label": "Rows"
-        },
-        {
-          "component": "text",
-          "valueType": "string",
-          "name": "columnWidths",
-          "value": "",
-          "label": "Column Widths (Percentages)",
-          "description": "Enter comma-separated percentages for each column (e.g., '30,70' for 30% and 70%). Leave empty for equal widths."
         }
       ]
     }
