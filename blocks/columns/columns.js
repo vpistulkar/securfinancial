@@ -144,12 +144,25 @@ function processColumnAlignment(col) {
     }
   }
   
-  // Only process if alignment field exists (UE should create it)
-  // Don't create it ourselves as it might interfere with UE's structure
+  // Helper to read alignment from column element attributes (AEM may store only on the node)
+  const getAlignmentFromColumnAttrs = () => {
+    const v = col.getAttribute('itemAlignment') ||
+             col.getAttribute('data-itemAlignment') ||
+             col.getAttribute('data-itemalignment') ||
+             col.getAttribute('data-item-alignment') ||
+             col.dataset?.itemAlignment ||
+             col.dataset?.itemalignment ||
+             col.getAttribute('itemalignment');
+    if (!v) return null;
+    const s = String(v).toLowerCase().trim();
+    return (s === 'horizontal' || s === 'vertical') ? s : (s.includes('horiz') ? 'horizontal' : 'vertical');
+  };
+
+  // When no alignment div in DOM, still apply value from column attributes (e.g. AEM-rendered)
   if (!alignmentDiv) {
-    // If it doesn't exist, just apply default vertical alignment
+    const alignmentFromAttr = getAlignmentFromColumnAttrs();
     col.classList.remove('columns-item-horizontal', 'columns-item-vertical');
-    col.classList.add('columns-item-vertical');
+    col.classList.add(alignmentFromAttr === 'horizontal' ? 'columns-item-horizontal' : 'columns-item-vertical');
     col._alignmentProcessed = true;
     return;
   }
@@ -446,4 +459,3 @@ export default function decorate(block) {
     block._ueListenerAdded = true;
   }
 }
-
