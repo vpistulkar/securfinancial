@@ -124,7 +124,25 @@ function processColumnAlignment(col) {
   }
   
   // Try to find alignment value in column structure
+  // Check multiple possible locations where AEM might store it
   let alignmentDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
+  
+  // Also check if it's a direct child div or p tag
+  if (!alignmentDiv) {
+    // Check if any direct child has the data-aue-prop
+    alignmentDiv = Array.from(col.children).find(child => 
+      child.hasAttribute('data-aue-prop') && 
+      child.getAttribute('data-aue-prop') === 'itemAlignment'
+    );
+  }
+  
+  // Also check for p tag with data-aue-prop (like tabs block does)
+  if (!alignmentDiv) {
+    const alignmentP = col.querySelector('p[data-aue-prop="itemAlignment"]');
+    if (alignmentP) {
+      alignmentDiv = alignmentP.parentElement || alignmentP;
+    }
+  }
   
   // Only process if alignment field exists (UE should create it)
   // Don't create it ourselves as it might interfere with UE's structure
@@ -144,39 +162,50 @@ function processColumnAlignment(col) {
       currentAlignmentDiv = alignmentDiv; // Fallback to original
     }
     
-    // Read the alignment value - check multiple possible locations
+    // Read the alignment value - following the EXACT pattern from tabs block
+    // Tabs uses: block.querySelector('p[data-aue-prop="tabsstyle"]')?.textContent?.trim()
     let alignmentValue = 'vertical'; // default
     
-    // FIRST: Check if value is stored directly on the column div as an attribute
-    // AEM might store it as itemAlignment, data-itemAlignment, or in dataset
-    const colAttrValue = col.getAttribute('itemAlignment') || 
-                         col.getAttribute('data-itemAlignment') ||
-                         col.getAttribute('data-itemalignment') ||
-                         col.dataset.itemAlignment ||
-                         col.dataset.itemalignment ||
-                         col.getAttribute('itemalignment'); // case-insensitive check
-    if (colAttrValue) {
-      alignmentValue = String(colAttrValue).toLowerCase().trim();
+    // FIRST: Check for p tag with data-aue-prop (EXACT pattern from tabs block - most reliable)
+    const alignmentP = col.querySelector('p[data-aue-prop="itemAlignment"]');
+    if (alignmentP) {
+      alignmentValue = alignmentP.textContent?.trim() || 'vertical';
     }
     
-    // SECOND: Check the alignment div if not found on column
-    if (!colAttrValue && currentAlignmentDiv) {
-      // First, try to find the value in the alignment div
-      const alignmentP = currentAlignmentDiv.querySelector('p');
-      if (alignmentP) {
-        alignmentValue = alignmentP.textContent?.trim() || currentAlignmentDiv.textContent?.trim() || 'vertical';
+    // SECOND: If not found, check the alignment div (fallback)
+    if (!alignmentP && currentAlignmentDiv) {
+      // Try to find p tag inside the div
+      const alignmentPInDiv = currentAlignmentDiv.querySelector('p[data-aue-prop="itemAlignment"]') ||
+                              currentAlignmentDiv.querySelector('p');
+      if (alignmentPInDiv) {
+        alignmentValue = alignmentPInDiv.textContent?.trim() || 'vertical';
       } else {
+        // Check text content of div itself
         alignmentValue = currentAlignmentDiv.textContent?.trim() || 'vertical';
       }
       
-      // Also check if the div itself has the value as an attribute or data attribute
+      // Also check attributes on the div
       if (!alignmentValue || alignmentValue.toLowerCase() === 'vertical') {
         const attrValue = currentAlignmentDiv.getAttribute('value') || 
                          currentAlignmentDiv.getAttribute('data-value') ||
-                         currentAlignmentDiv.dataset.value;
+                         currentAlignmentDiv.dataset.value ||
+                         currentAlignmentDiv.getAttribute('itemAlignment');
         if (attrValue) {
-          alignmentValue = attrValue.toLowerCase().trim();
+          alignmentValue = String(attrValue).toLowerCase().trim();
         }
+      }
+    }
+    
+    // THIRD: Check if value is stored directly on the column div as an attribute (AEM fallback)
+    if ((!alignmentP && (!currentAlignmentDiv || alignmentValue === 'vertical'))) {
+      const colAttrValue = col.getAttribute('itemAlignment') || 
+                           col.getAttribute('data-itemAlignment') ||
+                           col.getAttribute('data-itemalignment') ||
+                           col.dataset.itemAlignment ||
+                           col.dataset.itemalignment ||
+                           col.getAttribute('itemalignment');
+      if (colAttrValue) {
+        alignmentValue = String(colAttrValue).toLowerCase().trim();
       }
     }
     
@@ -417,3 +446,4 @@ export default function decorate(block) {
     block._ueListenerAdded = true;
   }
 }
+
