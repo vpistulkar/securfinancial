@@ -63,4 +63,3 @@ The block uses CSS custom properties for theming:
 ## Airport Codes
 
 The block includes a predefined list of airports. To add more airports, update the `AIRPORTS` array in `flight-search.js`.
-
