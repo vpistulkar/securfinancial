@@ -158,12 +158,25 @@ function processColumnAlignment(col) {
     return (s === 'horizontal' || s === 'vertical') ? s : (s.includes('horiz') ? 'horizontal' : 'vertical');
   };
 
-  // When no alignment div in DOM, still apply value from column attributes (e.g. AEM-rendered)
+  // When no alignment div in DOM yet (e.g. column just created, UE injects field later)
   if (!alignmentDiv) {
     const alignmentFromAttr = getAlignmentFromColumnAttrs();
     col.classList.remove('columns-item-horizontal', 'columns-item-vertical');
     col.classList.add(alignmentFromAttr === 'horizontal' ? 'columns-item-horizontal' : 'columns-item-vertical');
+    // Schedule re-checks so we pick up itemAlignment once UE injects it (new columns get created before the field exists)
+    const delays = [200, 500, 1000, 1500];
+    delays.forEach((delay) => {
+      setTimeout(() => {
+        if (!col.isConnected) return;
+        const nowDiv = col.querySelector('[data-aue-prop="itemAlignment"]');
+        if (nowDiv) {
+          col._alignmentProcessed = false;
+          processColumnAlignment(col);
+        }
+      }, delay);
+    });
     col._alignmentProcessed = true;
+    col._alignmentProcessedWithoutDiv = true; // so UE event handler can re-run processColumnAlignment for this column
     return;
   }
   
@@ -452,29 +465,37 @@ export default function decorate(block) {
       }
 
       if (resource && blockResource && resource.startsWith(blockResource)) {
-        setTimeout(() => {
-          [...block.children].forEach((row) => {
-            [...row.children].forEach((col) => {
-              if (!col.hasAttribute('data-aue-model')) {
-                col.setAttribute('data-aue-model', 'column');
-              }
-              if (!col.hasAttribute('data-aue-type')) {
-                col.setAttribute('data-aue-type', 'component');
-              }
-              if (!col.hasAttribute('data-aue-filter')) {
-                col.setAttribute('data-aue-filter', 'column');
-              }
-              if (!col.hasAttribute('data-aue-behavior')) {
-                col.setAttribute('data-aue-behavior', 'component');
-              }
-              if (col._alignmentProcessed && col._updateAlignment) {
-                col._updateAlignment();
-              } else if (!col._alignmentProcessed) {
-                processColumnAlignment(col);
-              }
+        // Run soon and again later so new columns get alignment once UE injects itemAlignment
+        [100, 400, 800].forEach((delay) => {
+          setTimeout(() => {
+            [...block.children].forEach((row) => {
+              [...row.children].forEach((col) => {
+                if (!col.hasAttribute('data-aue-model')) {
+                  col.setAttribute('data-aue-model', 'column');
+                }
+                if (!col.hasAttribute('data-aue-type')) {
+                  col.setAttribute('data-aue-type', 'component');
+                }
+                if (!col.hasAttribute('data-aue-filter')) {
+                  col.setAttribute('data-aue-filter', 'column');
+                }
+                if (!col.hasAttribute('data-aue-behavior')) {
+                  col.setAttribute('data-aue-behavior', 'component');
+                }
+                if (col._alignmentProcessedWithoutDiv) {
+                  col._alignmentProcessed = false;
+                  col._alignmentProcessedWithoutDiv = false;
+                }
+                if (col._alignmentProcessed && col._updateAlignment) {
+                  col._updateAlignment();
+                } else {
+                  // Re-process so columns created before UE injects itemAlignment get the style on a later pass
+                  processColumnAlignment(col);
+                }
+              });
             });
-          });
-        }, 100);
+          }, delay);
+        });
       }
     };
 
