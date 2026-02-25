@@ -182,40 +182,39 @@ function processColumnAlignment(col) {
     // FIRST: Check for p tag with data-aue-prop (EXACT pattern from tabs block - most reliable)
     const alignmentP = col.querySelector('p[data-aue-prop="itemAlignment"]');
     if (alignmentP) {
-      alignmentValue = alignmentP.textContent?.trim() || 'vertical';
+      alignmentValue = alignmentP.textContent?.trim() || alignmentP.innerText?.trim() || 'vertical';
     }
     
-    // SECOND: If not found, check the alignment div (fallback)
-    if (!alignmentP && currentAlignmentDiv) {
-      // Try to find p tag inside the div
+    // SECOND: Check data-aue-value / value on the alignment element (UE may store select value in attribute)
+    if ((!alignmentValue || alignmentValue === 'vertical') && currentAlignmentDiv) {
+      const attrValue = currentAlignmentDiv.getAttribute('data-aue-value') ||
+                        currentAlignmentDiv.getAttribute('data-value') ||
+                        currentAlignmentDiv.getAttribute('value') ||
+                        currentAlignmentDiv.dataset?.value ||
+                        currentAlignmentDiv.getAttribute('itemAlignment');
+      if (attrValue) {
+        alignmentValue = String(attrValue).toLowerCase().trim();
+      }
+    }
+    
+    // THIRD: If not found, check the alignment div text content (fallback)
+    if ((!alignmentValue || alignmentValue === 'vertical') && currentAlignmentDiv) {
       const alignmentPInDiv = currentAlignmentDiv.querySelector('p[data-aue-prop="itemAlignment"]') ||
                               currentAlignmentDiv.querySelector('p');
       if (alignmentPInDiv) {
-        alignmentValue = alignmentPInDiv.textContent?.trim() || 'vertical';
+        alignmentValue = alignmentPInDiv.textContent?.trim() || alignmentPInDiv.innerText?.trim() || 'vertical';
       } else {
-        // Check text content of div itself
-        alignmentValue = currentAlignmentDiv.textContent?.trim() || 'vertical';
-      }
-      
-      // Also check attributes on the div
-      if (!alignmentValue || alignmentValue.toLowerCase() === 'vertical') {
-        const attrValue = currentAlignmentDiv.getAttribute('value') || 
-                         currentAlignmentDiv.getAttribute('data-value') ||
-                         currentAlignmentDiv.dataset.value ||
-                         currentAlignmentDiv.getAttribute('itemAlignment');
-        if (attrValue) {
-          alignmentValue = String(attrValue).toLowerCase().trim();
-        }
+        alignmentValue = currentAlignmentDiv.textContent?.trim() || currentAlignmentDiv.innerText?.trim() || 'vertical';
       }
     }
     
-    // THIRD: Check if value is stored directly on the column div as an attribute (AEM fallback)
-    if ((!alignmentP && (!currentAlignmentDiv || alignmentValue === 'vertical'))) {
-      const colAttrValue = col.getAttribute('itemAlignment') || 
+    // FOURTH: Check if value is stored directly on the column div as an attribute (AEM fallback)
+    if (!alignmentValue || alignmentValue === 'vertical') {
+      const colAttrValue = col.getAttribute('itemAlignment') ||
                            col.getAttribute('data-itemAlignment') ||
                            col.getAttribute('data-itemalignment') ||
-                           col.dataset.itemAlignment ||
-                           col.dataset.itemalignment ||
+                           col.dataset?.itemAlignment ||
+                           col.dataset?.itemalignment ||
                            col.getAttribute('itemalignment');
       if (colAttrValue) {
         alignmentValue = String(colAttrValue).toLowerCase().trim();
@@ -409,19 +408,53 @@ export default function decorate(block) {
   
   // Listen for UE events to process new columns when they're added
   if (!block._ueListenerAdded) {
-    const handleUEEvent = (event) => {
-      // Check if the event is related to this block or its children
+    // When user changes Item Alignment in the properties panel, UE sends aue:content-patch;
+    // the DOM may not be updated with the new value, so apply alignment directly from the payload.
+    const handleContentPatch = (event) => {
+      const patch = event.detail?.patch;
+      if (!patch || patch.name !== 'itemAlignment') return;
       const resource = event.detail?.request?.target?.resource;
       const blockResource = block.getAttribute('data-aue-resource');
-      
-      if (resource && blockResource && resource.startsWith(blockResource)) {
-        // Small delay to let UE finish updating the DOM
+      if (!resource || !blockResource || !resource.startsWith(blockResource)) return;
+
+      let col = event.target?.closest?.('[data-aue-model="column"]') || null;
+      if (!col && resource) {
+        col = block.querySelector(`[data-aue-resource="${resource}"]`) || null;
+      }
+      if (!col) {
+        block.querySelectorAll('[data-aue-model="column"]').forEach((c) => {
+          if (c.getAttribute?.('data-aue-resource') === resource) col = c;
+        });
+      }
+      if (col) {
+        const val = String(patch.value || '').toLowerCase().trim();
+        const alignment = (val === 'horizontal' || val === 'vertical') ? val : 'vertical';
+        col.classList.remove('columns-item-horizontal', 'columns-item-vertical');
+        col.classList.add(alignment === 'horizontal' ? 'columns-item-horizontal' : 'columns-item-vertical');
+      } else {
+        // Column may not have data-aue-resource; re-run alignment after a delay so DOM or updateAlignment can pick it up
         setTimeout(() => {
-          // Re-process all columns in case new ones were added or properties changed
+          block.querySelectorAll('[data-aue-model="column"]').forEach((c) => {
+            if (c._updateAlignment) c._updateAlignment();
+            else processColumnAlignment(c);
+          });
+        }, 150);
+      }
+    };
+
+    const handleUEEvent = (event) => {
+      const resource = event.detail?.request?.target?.resource;
+      const blockResource = block.getAttribute('data-aue-resource');
+
+      if (event.type === 'aue:content-patch' && event.detail?.patch?.name === 'itemAlignment') {
+        handleContentPatch(event);
+        return;
+      }
+
+      if (resource && blockResource && resource.startsWith(blockResource)) {
+        setTimeout(() => {
           [...block.children].forEach((row) => {
             [...row.children].forEach((col) => {
-              // CRITICAL: Ensure UE attributes are always present (they might get lost when UE adds content)
-              // This is essential for the + icon to continue working
               if (!col.hasAttribute('data-aue-model')) {
                 col.setAttribute('data-aue-model', 'column');
               }
@@ -434,12 +467,9 @@ export default function decorate(block) {
               if (!col.hasAttribute('data-aue-behavior')) {
                 col.setAttribute('data-aue-behavior', 'component');
               }
-              
-              // If already processed, just update alignment (property might have changed)
               if (col._alignmentProcessed && col._updateAlignment) {
                 col._updateAlignment();
               } else if (!col._alignmentProcessed) {
-                // Process new columns
                 processColumnAlignment(col);
               }
             });
@@ -447,15 +477,14 @@ export default function decorate(block) {
         }, 100);
       }
     };
-    
-    // Listen for various UE events
+
     const main = document.querySelector('main');
     if (main) {
       main.addEventListener('aue:content-add', handleUEEvent);
       main.addEventListener('aue:content-update', handleUEEvent);
-      main.addEventListener('aue:content-patch', handleUEEvent); // Property changes
+      main.addEventListener('aue:content-patch', handleUEEvent);
     }
-    
+
     block._ueListenerAdded = true;
   }
 }
