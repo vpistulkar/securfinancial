@@ -462,6 +462,14 @@
         "name": "rows",
         "value": "",
         "label": "Rows"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "columnWidths",
+        "value": "",
+        "label": "Column widths (%)",
+        "description": "Comma-separated width percentages per column, e.g. 20,80 or 33,33,34"
       }
     ]
   },

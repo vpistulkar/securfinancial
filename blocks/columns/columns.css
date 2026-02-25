@@ -55,6 +55,18 @@ div[data-aue-prop="itemAlignment"] {
   padding: 0 !important;
 }
 
+/* Hide column widths config field */
+.columns [data-aue-prop="columnWidths"],
+.columns > div > div[data-aue-prop="columnWidths"],
+div[data-aue-prop="columnWidths"] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 /* Also hide p tags inside alignment div */
 div[data-aue-prop="itemAlignment"] p {
   display: none !important;

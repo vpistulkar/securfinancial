@@ -353,6 +353,17 @@ function processColumnAlignment(col) {
   col._alignmentProcessed = true;
 }
 
+function parseColumnWidths(block) {
+  const raw = block.querySelector('p[data-aue-prop="columnWidths"]')?.textContent?.trim()
+    || block.querySelector('[data-aue-prop="columnWidths"]')?.textContent?.trim()
+    || block.getAttribute('data-column-widths')
+    || block.dataset?.columnWidths
+    || '';
+  if (!raw) return null;
+  const parts = raw.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n) && n > 0 && n <= 100);
+  return parts.length > 0 ? parts : null;
+}
+
 export default function decorate(block) {
   // Prevent re-decoration
   if (block.dataset.decorated === 'true') {
@@ -362,10 +373,17 @@ export default function decorate(block) {
   const cols = [...block.firstElementChild.children];
   block.classList.add(`columns-${cols.length}-cols`);
 
+  const columnWidths = parseColumnWidths(block);
+
   // setup image columns
   [...block.children].forEach((row) => {
     row.classList.add('columns-row');
-    [...row.children].forEach((col) => {
+    [...row.children].forEach((col, colIndex) => {
+      if (columnWidths && columnWidths[colIndex] != null) {
+        const pct = columnWidths[colIndex];
+        col.style.flex = `0 0 ${pct}%`;
+        col.style.maxWidth = `${pct}%`;
+      }
       // Process alignment for this column
       processColumnAlignment(col);
       
