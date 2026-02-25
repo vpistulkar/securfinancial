@@ -112,6 +112,15 @@ div[data-aue-prop="itemAlignment"] p {
     flex: 1;
     order: unset;
   }
+  
+  /* Ensure column item alignment classes override the default flex-direction */
+  .columns > div > div.columns-item-horizontal {
+    flex-direction: row !important;
+  }
+  
+  .columns > div > div.columns-item-vertical {
+    flex-direction: column !important;
+  }
 }
 
 

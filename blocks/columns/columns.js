@@ -147,7 +147,20 @@ function processColumnAlignment(col) {
     // Read the alignment value - check multiple possible locations
     let alignmentValue = 'vertical'; // default
     
-    if (currentAlignmentDiv) {
+    // FIRST: Check if value is stored directly on the column div as an attribute
+    // AEM might store it as itemAlignment, data-itemAlignment, or in dataset
+    const colAttrValue = col.getAttribute('itemAlignment') || 
+                         col.getAttribute('data-itemAlignment') ||
+                         col.getAttribute('data-itemalignment') ||
+                         col.dataset.itemAlignment ||
+                         col.dataset.itemalignment ||
+                         col.getAttribute('itemalignment'); // case-insensitive check
+    if (colAttrValue) {
+      alignmentValue = String(colAttrValue).toLowerCase().trim();
+    }
+    
+    // SECOND: Check the alignment div if not found on column
+    if (!colAttrValue && currentAlignmentDiv) {
       // First, try to find the value in the alignment div
       const alignmentP = currentAlignmentDiv.querySelector('p');
       if (alignmentP) {
@@ -157,19 +170,25 @@ function processColumnAlignment(col) {
       }
       
       // Also check if the div itself has the value as an attribute or data attribute
-      if (!alignmentValue || alignmentValue === 'vertical') {
+      if (!alignmentValue || alignmentValue.toLowerCase() === 'vertical') {
         const attrValue = currentAlignmentDiv.getAttribute('value') || 
                          currentAlignmentDiv.getAttribute('data-value') ||
                          currentAlignmentDiv.dataset.value;
-        if (attrValue && (attrValue === 'horizontal' || attrValue === 'vertical')) {
-          alignmentValue = attrValue;
+        if (attrValue) {
+          alignmentValue = attrValue.toLowerCase().trim();
         }
       }
     }
     
-    // Normalize the value
+    // Normalize the value - handle case-insensitive matching
+    alignmentValue = alignmentValue.toLowerCase().trim();
     if (alignmentValue !== 'horizontal' && alignmentValue !== 'vertical') {
-      alignmentValue = 'vertical';
+      // Try to match common variations
+      if (alignmentValue.includes('horiz') || alignmentValue === 'h' || alignmentValue === 'row') {
+        alignmentValue = 'horizontal';
+      } else {
+        alignmentValue = 'vertical';
+      }
     }
     
     // Remove both classes first
