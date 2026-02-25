@@ -364,6 +364,25 @@ function parseColumnWidths(block) {
   return parts.length > 0 ? parts : null;
 }
 
+function applyColumnWidths(block, rawValue) {
+  if (!rawValue || typeof rawValue !== 'string') return;
+  const trimmed = rawValue.trim();
+  if (!trimmed) return;
+  block.dataset.columnWidths = trimmed;
+  const widths = trimmed.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n) && n > 0 && n <= 100);
+  if (widths.length === 0) return;
+  [...block.children].forEach((row) => {
+    if (!row.classList.contains('columns-row')) return;
+    [...row.children].forEach((col, colIndex) => {
+      if (widths[colIndex] != null) {
+        const pct = widths[colIndex];
+        col.style.flex = `0 0 ${pct}%`;
+        col.style.maxWidth = `${pct}%`;
+      }
+    });
+  });
+}
+
 export default function decorate(block) {
   // Prevent re-decoration
   if (block.dataset.decorated === 'true') {
@@ -473,9 +492,30 @@ export default function decorate(block) {
       }
     };
 
+    const handleContentDetails = (event) => {
+      const resource = event.detail?.request?.target?.resource;
+      const blockResource = block.getAttribute('data-aue-resource');
+      if (!resource || !blockResource || resource !== blockResource) return;
+      const content = event.detail?.content;
+      if (content && content.columnWidths != null && content.columnWidths !== '') {
+        applyColumnWidths(block, String(content.columnWidths));
+      }
+    };
+
     const handleUEEvent = (event) => {
       const resource = event.detail?.request?.target?.resource;
       const blockResource = block.getAttribute('data-aue-resource');
+
+      if (event.type === 'aue:content-details') {
+        handleContentDetails(event);
+      }
+
+      if (event.type === 'aue:content-patch' && event.detail?.patch?.name === 'columnWidths') {
+        if (resource && blockResource && resource === blockResource) {
+          applyColumnWidths(block, String(event.detail.patch.value || ''));
+        }
+        return;
+      }
 
       if (event.type === 'aue:content-patch' && event.detail?.patch?.name === 'itemAlignment') {
         handleContentPatch(event);
@@ -522,6 +562,7 @@ export default function decorate(block) {
       main.addEventListener('aue:content-add', handleUEEvent);
       main.addEventListener('aue:content-update', handleUEEvent);
       main.addEventListener('aue:content-patch', handleUEEvent);
+      main.addEventListener('aue:content-details', handleContentDetails);
     }
 
     block._ueListenerAdded = true;
