@@ -509,6 +509,10 @@
           {
             "name": "Teaser Card",
             "value": "teaser-card"
+          },
+          {
+            "name": "Icon Cards",
+            "value": "icon-cards"
           }
         ]
       },

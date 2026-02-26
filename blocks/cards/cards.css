@@ -155,6 +155,19 @@
 
 
 
+/* Card Icon Cards – centered text, smaller image min-height */
+.cards > ul > li.icon-cards .cards-card-body h1,
+.cards > ul > li.icon-cards .cards-card-body h2,
+.cards > ul > li.icon-cards .cards-card-body h3,
+.cards > ul > li.icon-cards .cards-card-body h4,
+.cards > ul > li.icon-cards .cards-card-body p {
+  text-align: center;
+}
+
+.cards > ul > li.icon-cards img {
+  min-height: 100px;
+}
+
 /* Card Image Top */
 .cards > ul > li.image-top {
   background: var(--background-color) 0 0 no-repeat padding-box;
