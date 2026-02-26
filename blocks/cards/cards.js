@@ -27,9 +27,8 @@ export default function decorate(block) {
     const ctaParagraph = ctaDiv?.querySelector('p');
     const ctaStyle = ctaParagraph?.textContent?.trim() || 'default';
     
-    // Read image style from the fifth div (index 4)
-    const imageStyleDiv = row.children[4];
-    const imageStyleParagraph = imageStyleDiv?.querySelector('p');
+    // Read image style by attribute so it works regardless of column order (AEM authoring)
+    const imageStyleParagraph = row.querySelector('p[data-aue-prop="imagestyle"]') || row.querySelector('[data-aue-prop="imagestyle"]');
     const imageStyle = imageStyleParagraph?.textContent?.trim() || '';
 
     const getCell = (idx) => (row.children[idx]?.querySelector?.('p')?.textContent?.trim()
