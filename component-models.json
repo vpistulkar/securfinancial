@@ -1017,11 +1017,71 @@
   },
   {
     "id": "user-registration",
-    "fields": []
+    "fields": [
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonwebhookurl",
+        "label": "Button Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonformid",
+        "label": "Button Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttondata",
+        "label": "Button Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs"
+      }
+    ]
   },
   {
     "id": "sign-in",
-    "fields": []
+    "fields": [
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonwebhookurl",
+        "label": "Button Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonformid",
+        "label": "Button Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttondata",
+        "label": "Button Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs"
+      }
+    ]
   },
   {
     "id": "membership",
@@ -7091,6 +7151,35 @@
         "name": "enableTravellingChildren",
         "label": "Enable Travelling with Children Option",
         "value": true
+      },
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonwebhookurl",
+        "label": "Button Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonformid",
+        "label": "Button Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttondata",
+        "label": "Button Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs"
       }
     ]
   },

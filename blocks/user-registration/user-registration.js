@@ -1,4 +1,10 @@
+import { readBlockConfig } from "../../scripts/aem.js";
+
 export default async function decorate(block) {
+  readBlockConfig(block); // ensure config is read before we replace block
+  /* Hide button config rows on published/live, same as hero/cards */
+  [...block.children].forEach((row) => { row.style.display = 'none'; });
+
   // Build Adaptive Form definition for User Registration
   const formDef = {
     id: "user-registration",

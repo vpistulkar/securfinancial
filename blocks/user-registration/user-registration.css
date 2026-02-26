@@ -356,3 +356,17 @@ main .user-registration select {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Hide button config fields so they don't appear in HTML */
+.user-registration [data-aue-prop="buttoneventtype"],
+.user-registration [data-aue-prop="buttonwebhookurl"],
+.user-registration [data-aue-prop="buttonformid"],
+.user-registration [data-aue-prop="buttondata"] {
+  display: none !important;
+}
+.user-registration div:has(> [data-aue-prop="buttoneventtype"]),
+.user-registration div:has(> [data-aue-prop="buttonwebhookurl"]),
+.user-registration div:has(> [data-aue-prop="buttonformid"]),
+.user-registration div:has(> [data-aue-prop="buttondata"]) {
+  display: none !important;
+}

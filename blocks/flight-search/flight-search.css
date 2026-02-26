@@ -379,3 +379,17 @@
   }
 }
 
+/* Hide button config fields so they don't appear in HTML */
+.flight-search [data-aue-prop="buttoneventtype"],
+.flight-search [data-aue-prop="buttonwebhookurl"],
+.flight-search [data-aue-prop="buttonformid"],
+.flight-search [data-aue-prop="buttondata"] {
+  display: none !important;
+}
+.flight-search div:has(> [data-aue-prop="buttoneventtype"]),
+.flight-search div:has(> [data-aue-prop="buttonwebhookurl"]),
+.flight-search div:has(> [data-aue-prop="buttonformid"]),
+.flight-search div:has(> [data-aue-prop="buttondata"]) {
+  display: none !important;
+}
+

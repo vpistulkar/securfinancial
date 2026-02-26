@@ -1,4 +1,5 @@
 import { isAuthorEnvironment } from "../../scripts/scripts.js";
+import { readBlockConfig } from "../../scripts/aem.js";
 
 // Adobe Profile API Configuration
 const PROFILE_API_CONFIG = {
@@ -8,6 +9,10 @@ const PROFILE_API_CONFIG = {
 };
 
 export default async function decorate(block) {
+  readBlockConfig(block); // ensure config is read before we replace block
+  /* Hide button config rows on published/live, same as hero/cards */
+  [...block.children].forEach((row) => { row.style.display = 'none'; });
+
   const isAuthor = isAuthorEnvironment();
 
   // Build Adaptive Form definition for Sign In

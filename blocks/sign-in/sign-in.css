@@ -247,3 +247,17 @@ main .sign-in .create-account-link:active {
     font-size: 1.5rem;
   }
 }
+
+/* Hide button config fields so they don't appear in HTML */
+.sign-in [data-aue-prop="buttoneventtype"],
+.sign-in [data-aue-prop="buttonwebhookurl"],
+.sign-in [data-aue-prop="buttonformid"],
+.sign-in [data-aue-prop="buttondata"] {
+  display: none !important;
+}
+.sign-in div:has(> [data-aue-prop="buttoneventtype"]),
+.sign-in div:has(> [data-aue-prop="buttonwebhookurl"]),
+.sign-in div:has(> [data-aue-prop="buttonformid"]),
+.sign-in div:has(> [data-aue-prop="buttondata"]) {
+  display: none !important;
+}

@@ -1,5 +1,5 @@
 // Flight Search Block
-import { getMetadata } from '../../scripts/aem.js';
+import { getMetadata, readBlockConfig } from '../../scripts/aem.js';
 import { isAuthorEnvironment } from '../../scripts/scripts.js';
 import { getPathDetails } from '../../scripts/utils.js';
 
@@ -347,6 +347,12 @@ function setupClickOutside() {
 
 // Main decorate function
 export default async function decorate(block) {
+  const config = readBlockConfig(block) || {};
+  /* Hide button config rows (index >= 7) on published/live, same as hero/cards */
+  [...block.children].forEach((row, index) => {
+    if (index >= 7) row.style.display = 'none';
+  });
+
   // Clear block
   block.innerHTML = '';
   block.className = 'flight-search';
