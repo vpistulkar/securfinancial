@@ -70,8 +70,9 @@
     "id": "column",
     "components": [
       "button",
+      "cards",
       "image",
-      "text",      
+      "text",
       "title",
       "video"
     ]
