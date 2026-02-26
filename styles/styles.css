@@ -661,9 +661,7 @@ main > .section:not([data-sec-full-width="true"]) {
   margin-left: auto !important;
   margin-right: auto !important;
 }
-main > .section.bg-default:not([data-sec-full-width="true"]) {
-  max-width: unset;
-}
+
 main > .section.bg-dark:not([data-sec-full-width="true"]) {
   max-width: unset;
 }
