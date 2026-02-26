@@ -787,6 +787,16 @@ main > .section[data-sec-full-width="true"] > div {
   padding: 0;
 }
 
+/* Section horizontal layout with percentage item widths (Item widths (%) field) */
+main .section.section-horizontal-widths > .default-content-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+main .section.section-horizontal-widths > .default-content-wrapper > div {
+  box-sizing: border-box;
+}
 
 /* Section Background Colors */
 main .section.bg-theme {  

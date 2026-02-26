@@ -160,6 +160,7 @@ function init() {
   setup();
   sampleRUM.collectBaseURL = window.origin;
   sampleRUM();
+  setupSectionItemWidthsUE();
 }
 
 /**
@@ -522,7 +523,73 @@ function decorateSections(main) {
       });
       sectionMeta.parentNode.remove();
     }
+    applySectionItemWidths(section);
   });
+}
+
+/**
+ * Applies horizontal layout and percentage widths to section items when sec-item-widths is set.
+ * @param {Element} section The section element
+ */
+function applySectionItemWidths(section) {
+  const raw = (section.dataset?.secItemWidths
+    || section.getAttribute('data-sec-item-widths')
+    || '').trim();
+  const inner = section.querySelector('.default-content-wrapper') || section.firstElementChild;
+  if (!inner) return;
+  if (!raw) {
+    section.classList.remove('section-horizontal-widths');
+    inner.style.display = '';
+    inner.style.flexDirection = '';
+    inner.style.flexWrap = '';
+    [...inner.children].forEach((el) => {
+      el.style.flex = '';
+      el.style.maxWidth = '';
+      el.style.boxSizing = '';
+    });
+    return;
+  }
+  const widths = raw.split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => !Number.isNaN(n) && n > 0 && n <= 100);
+  if (widths.length === 0) return;
+  section.classList.add('section-horizontal-widths');
+  inner.style.display = 'flex';
+  inner.style.flexDirection = 'row';
+  inner.style.flexWrap = 'nowrap';
+  [...inner.children].forEach((el, i) => {
+    if (widths[i] != null) {
+      el.style.flex = `0 0 ${widths[i]}%`;
+      el.style.maxWidth = `${widths[i]}%`;
+      el.style.boxSizing = 'border-box';
+    } else {
+      el.style.flex = '';
+      el.style.maxWidth = '';
+      el.style.boxSizing = '';
+    }
+  });
+}
+
+function setupSectionItemWidthsUE() {
+  const handler = (event) => {
+    const resource = event.detail?.request?.target?.resource;
+    const section = document.querySelector(`.section[data-aue-resource="${resource}"]`);
+    if (!section) return;
+    if (event.type === 'aue:content-details') {
+      const content = event.detail?.content || {};
+      const val = content['sec-item-widths'] ?? content.secItemWidths ?? '';
+      if (val !== '') {
+        section.dataset.secItemWidths = String(val);
+        applySectionItemWidths(section);
+      }
+    }
+    if (event.type === 'aue:content-patch' && event.detail?.patch?.name === 'sec-item-widths') {
+      section.dataset.secItemWidths = String(event.detail.patch.value || '');
+      applySectionItemWidths(section);
+    }
+  };
+  document.body.addEventListener('aue:content-details', handler);
+  document.body.addEventListener('aue:content-patch', handler);
 }
 
 /**
@@ -812,6 +879,7 @@ async function loadSections(element) {
 init();
 
 export {
+  applySectionItemWidths,
   buildBlock,
   createOptimizedPicture,
   decorateBlock,
