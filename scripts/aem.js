@@ -538,9 +538,32 @@ function applySectionItemWidths(section) {
   const raw = (section.dataset?.secItemWidths
     || section.getAttribute('data-sec-item-widths')
     || '').trim();
-  const sectionChildren = [...section.children].filter((el) => !el.classList?.contains('section-metadata'));
-  const inner = section.querySelector('.default-content-wrapper') || section.firstElementChild;
+  let sectionChildren = [...section.children].filter((el) => !el.classList?.contains('section-metadata'));
+  let inner = section.querySelector('.default-content-wrapper') || section.firstElementChild;
   if (!inner) return;
+
+  const widths = raw ? raw.split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => !Number.isNaN(n) && n > 0 && n <= 100) : [];
+  const dcw = section.querySelector('.default-content-wrapper');
+  if (widths.length > 0 && dcw && dcw.children.length > 1) {
+    const otherCount = sectionChildren.length - 1;
+    const totalItems = dcw.children.length + otherCount;
+    if (totalItems === widths.length) {
+      const newWrappers = [];
+      [...dcw.children].forEach((child) => {
+        const wrap = document.createElement('div');
+        wrap.appendChild(child);
+        newWrappers.push(wrap);
+      });
+      const idx = sectionChildren.indexOf(dcw);
+      newWrappers.forEach((w) => section.insertBefore(w, dcw));
+      dcw.remove();
+      sectionChildren = [...section.children].filter((el) => !el.classList?.contains('section-metadata'));
+      inner = section.firstElementChild;
+    }
+  }
+
   const clearWidths = (el) => {
     if (!el) return;
     el.style.flex = '';
@@ -568,9 +591,6 @@ function applySectionItemWidths(section) {
     clearInnerFlex();
     return;
   }
-  const widths = raw.split(',')
-    .map((s) => parseInt(s.trim(), 10))
-    .filter((n) => !Number.isNaN(n) && n > 0 && n <= 100);
   if (widths.length === 0) return;
   const immediateChildren = [...inner.querySelectorAll(':scope > *')];
   const useSectionLevel = sectionChildren.length >= widths.length && sectionChildren.length > 1;
