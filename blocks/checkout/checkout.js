@@ -183,13 +183,13 @@ function renderPassengerForm(mainCol) {
     <h3 class="checkout-section-title">Passenger Information</h3>
     <p class="checkout-description">Please make sure your full name is entered exactly as it appears on your government-issued identification. This information is required based on international regulations. Refer to our <a href="/terms">Terms and Conditions</a> to learn more.</p>
     <div class="checkout-form">
-      <label>First Name <input type="text" name="firstName" required></label>
+      <label>First Name <input type="text" name="firstName"></label>
       <label>Middle Name (optional) <input type="text" name="middleName"></label>
-      <label>Last Name <input type="text" name="lastName" required></label>
+      <label>Last Name <input type="text" name="lastName"></label>
       <label>Birth Date <input type="text" name="birthDate" placeholder="mm/dd/yyyy"></label>
       <label>Gender <select name="gender"><option value="">Not Specified</option><option value="male">Male</option><option value="female">Female</option></select></label>
       <label>Frequent Flyer ID <input type="text" name="frequentFlyerId"></label>
-      <label>Email Address <input type="email" name="email" required></label>
+      <label>Email Address <input type="email" name="email"></label>
       <label>Phone Number <input type="tel" name="phone"></label>
       <label class="checkout-checkbox"><input type="checkbox" name="wknd-club"> I want to sign up for WKND Fly Club</label>
       <label class="checkout-checkbox"><input type="checkbox" name="sms"> I want to get SMS with booking confirmation</label>
@@ -238,19 +238,6 @@ function renderTripTotal(sidebar, total) {
       if (flights.length === 0) {
         // eslint-disable-next-line no-alert
         alert('Please add at least one flight to your trip before confirming.');
-        return;
-      }
-      const form = block?.querySelector('.checkout-form');
-      const required = form?.querySelectorAll('[required]');
-      let valid = true;
-      if (required?.length) {
-        required.forEach((el) => {
-          if (!el.value?.trim()) valid = false;
-        });
-      }
-      if (!valid && form) {
-        // eslint-disable-next-line no-alert
-        alert('Please fill in all required passenger fields.');
         return;
       }
       const formData = block ? collectCheckoutFormData(block) : {};
