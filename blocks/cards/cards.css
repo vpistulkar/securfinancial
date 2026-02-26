@@ -483,3 +483,57 @@
   }
   
 }
+
+/*
+  --------------------------
+  Card block: Alignment, vertical alignment, selectable, section link (Oxygen2 Card-like)
+  Uncomment when ready to test with new card authoring fields.
+  --------------------------
+
+  Alignment
+.cards > ul > li.cards-card--alignment-left,
+.cards > ul > li.cards-card--alignment-left .cards-card-body {
+  text-align: left;
+}
+
+.cards > ul > li.cards-card--alignment-center,
+.cards > ul > li.cards-card--alignment-center .cards-card-body {
+  text-align: center;
+}
+
+.cards > ul > li.cards-card--alignment-right,
+.cards > ul > li.cards-card--alignment-right .cards-card-body {
+  text-align: right;
+}
+
+  Vertical alignment (content area)
+.cards > ul > li.cards-card--verticalalignment-top .cards-card-body {
+  justify-content: flex-start;
+}
+
+.cards > ul > li.cards-card--verticalalignment-middle .cards-card-body {
+  justify-content: center;
+}
+
+.cards > ul > li.cards-card--verticalalignment-bottom .cards-card-body {
+  justify-content: flex-end;
+}
+
+  Selectable
+.cards > ul > li.cards-card--selectable {
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.cards > ul > li.cards-card--selected {
+  border: 2px solid var(--main-accent-color, #008edd);
+  border-radius: 4px;
+}
+
+  Section link (card clickable)
+.cards > ul > li[data-section-link] {
+  cursor: pointer;
+}
+
+  --------------------------
+*/

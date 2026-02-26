@@ -21,7 +21,7 @@ export default function decorate(block) {
     if (cardStyle && cardStyle !== 'default') {
       li.className = cardStyle;
     }
-    
+
     // Read CTA style from the fourth div (index 3)
     const ctaDiv = row.children[3];
     const ctaParagraph = ctaDiv?.querySelector('p');
@@ -31,7 +31,22 @@ export default function decorate(block) {
     const imageStyleDiv = row.children[4];
     const imageStyleParagraph = imageStyleDiv?.querySelector('p');
     const imageStyle = imageStyleParagraph?.textContent?.trim() || '';
-    
+
+    const getCell = (idx) => (row.children[idx]?.querySelector?.('p')?.textContent?.trim()
+      || row.children[idx]?.textContent?.trim() || '').toString();
+    const link = getCell(5);
+    const selectable = getCell(6);
+    const alignment = (getCell(7) || 'left').toLowerCase();
+    const verticalAlignment = (getCell(8) || 'middle').toLowerCase();
+    const buttonEventType = getCell(9);
+    const buttonWebhookUrl = getCell(10);
+    const buttonFormId = getCell(11);
+    const buttonData = getCell(12);
+
+    li.classList.add(`cards-card--alignment-${alignment}`, `cards-card--verticalalignment-${verticalAlignment}`);
+    if (selectable.toLowerCase() === 'true') li.classList.add('cards-card--selectable');
+    if (link) li.dataset.sectionLink = link;
+
     moveInstrumentation(row, li);
     while (row.firstElementChild) li.append(row.firstElementChild);
     
@@ -67,9 +82,13 @@ export default function decorate(block) {
       else if (index === 4) {
         div.className = 'cards-config';
         const p = div.querySelector('p');
-        if (p) {
-          p.style.display = 'none'; // Hide the configuration text
-        }
+        if (p) p.style.display = 'none';
+      }
+      // Indices 5-12 - Card link, selectable, alignment, verticalalignment, button actions
+      else if (index >= 5 && index <= 12) {
+        div.className = 'cards-config';
+        const p = div.querySelector('p');
+        if (p) p.style.display = 'none';
       }
       // Any other divs
       else {
@@ -97,9 +116,16 @@ export default function decorate(block) {
       // Add the correct CTA class
       buttonContainer.classList.add(ctaStyle);
     });
-    
+
+    const ctaLink = li.querySelector('p.button-container a, .button-container a');
+    if (ctaLink) {
+      if (buttonEventType) ctaLink.dataset.buttonEventType = buttonEventType;
+      if (buttonWebhookUrl) ctaLink.dataset.buttonWebhookUrl = buttonWebhookUrl;
+      if (buttonFormId) ctaLink.dataset.buttonFormId = buttonFormId;
+      if (buttonData) ctaLink.dataset.buttonData = buttonData;
+    }
+
     // Final cleanup: ensure compact-style is ONLY on the image container
-    // Remove it from everything, then re-add it only to the image container
     if (imageStyle && imageStyle === 'compact-style') {
       li.querySelectorAll('*').forEach(el => {
         if (el !== imageContainerDiv && el.classList.contains('compact-style')) {

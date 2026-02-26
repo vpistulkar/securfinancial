@@ -183,22 +183,6 @@
           "valueType": "string"
         },
         {
-          "component": "aem-content",
-          "name": "buttonlink",
-          "label": "Button Link"
-        },
-        {
-          "component": "select",
-          "name": "buttonvariant",
-          "label": "Button Variant",
-          "options": [
-            { "name": "CTA", "value": "cta" },
-            { "name": "Primary", "value": "primary" },
-            { "name": "Secondary", "value": "secondary" },
-            { "name": "Link", "value": "link" }
-          ]
-        },
-        {
           "component": "text",
           "name": "buttoneventtype",
           "label": "Button Event Type",

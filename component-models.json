@@ -451,6 +451,68 @@
             "value": "cta-button-dark"
           }
         ]
+      },
+      {
+        "component": "aem-content",
+        "name": "link",
+        "label": "Section Link",
+        "description": "Optional link for entire card"
+      },
+      {
+        "component": "boolean",
+        "name": "selectable",
+        "label": "Selectable",
+        "value": "false",
+        "valueType": "boolean"
+      },
+      {
+        "component": "select",
+        "name": "alignment",
+        "label": "Alignment",
+        "options": [
+          { "name": "Left", "value": "left" },
+          { "name": "Center", "value": "center" },
+          { "name": "Right", "value": "right" }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "verticalalignment",
+        "label": "Vertical Alignment",
+        "options": [
+          { "name": "Top", "value": "top" },
+          { "name": "Middle", "value": "middle" },
+          { "name": "Bottom", "value": "bottom" }
+        ]
+      },
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonwebhookurl",
+        "label": "Button Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonformid",
+        "label": "Button Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttondata",
+        "label": "Button Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs"
       }
     ]
   },
@@ -822,22 +884,6 @@
         "label": "Button Label",
         "value": "",
         "valueType": "string"
-      },
-      {
-        "component": "aem-content",
-        "name": "buttonlink",
-        "label": "Button Link"
-      },
-      {
-        "component": "select",
-        "name": "buttonvariant",
-        "label": "Button Variant",
-        "options": [
-          { "name": "CTA", "value": "cta" },
-          { "name": "Primary", "value": "primary" },
-          { "name": "Secondary", "value": "secondary" },
-          { "name": "Link", "value": "link" }
-        ]
       },
       {
         "component": "text",
