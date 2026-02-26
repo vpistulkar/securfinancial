@@ -93,6 +93,12 @@ const SAMPLE_FLIGHTS = {
 const TRIP_STORAGE_KEY = 'wknd-fly-selected-flights';
 const DEFAULT_CHECKOUT_PATH = '/checkout';
 
+export function getCheckoutPath() {
+  const base = (typeof window !== 'undefined' && window.hlx?.codeBasePath) || '';
+  const path = base ? `${base.replace(/\/$/, '')}/checkout` : DEFAULT_CHECKOUT_PATH;
+  return path;
+}
+
 export function getSelectedFlights() {
   try {
     const raw = sessionStorage.getItem(TRIP_STORAGE_KEY);
@@ -113,10 +119,6 @@ export function addFlightToTrip(flight) {
 export function removeFlightFromTrip(id) {
   const list = getSelectedFlights().filter((f) => f.id !== id);
   sessionStorage.setItem(TRIP_STORAGE_KEY, JSON.stringify(list));
-}
-
-export function getCheckoutPath() {
-  return DEFAULT_CHECKOUT_PATH;
 }
 
 function updateBookNowBar(barEl) {
