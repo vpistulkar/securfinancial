@@ -1,21 +1,31 @@
+/* Let the section container use full checkout width so no empty space on the right */
+main > .section:has(.checkout-block) > div {
+  max-width: 1400px;
+}
+
 /* Checkout block – Trip Summary layout (aligned with page, matches flights block width) */
 .checkout-block {
   width: 100%;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 2rem 2rem;
   font-family: var(--body-font-family, system-ui, sans-serif);
+  box-sizing: border-box;
 }
 
-.checkout-wrapper {
+/* Fill full width of block so no empty space on the right */
+.checkout-block .checkout-wrapper {
+  width: 100%;
+  min-width: 0;
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 2.5rem;
   align-items: start;
+  box-sizing: border-box;
 }
 
 @media (max-width: 900px) {
-  .checkout-wrapper {
+  .checkout-block .checkout-wrapper {
     grid-template-columns: 1fr;
   }
   .checkout-block {
@@ -42,8 +52,9 @@
   font-weight: 700;
 }
 
-/* Main column */
+/* Main column – min-width 0 so grid column can shrink and layout fills width */
 .checkout-main {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

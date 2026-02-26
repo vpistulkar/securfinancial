@@ -548,6 +548,10 @@
     "fields": []
   },
   {
+    "id": "confirmation",
+    "fields": []
+  },
+  {
     "id": "column",
     "fields": [
       {

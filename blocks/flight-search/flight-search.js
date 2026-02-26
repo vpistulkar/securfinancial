@@ -178,8 +178,12 @@ function createDatePicker(selectedDate, id) {
   return container;
 }
 
+// Default airport selection when no URL params
+const DEFAULT_FROM = 'WAW';
+const DEFAULT_TO = 'TQO';
+
 // Create search form
-function createFlightSearchForm() {
+function createFlightSearchForm(fromDefault = DEFAULT_FROM, toDefault = DEFAULT_TO) {
   const form = createElement('form', 'flight-search-form');
   form.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -188,12 +192,12 @@ function createFlightSearchForm() {
   
   const searchRow = createElement('div', 'flight-search-row');
   
-  // From dropdown
-  const fromGroup = createAirportDropdown(AIRPORTS, '', 'From', 'flight-from');
+  // From dropdown (default WAW)
+  const fromGroup = createAirportDropdown(AIRPORTS, fromDefault, 'From', 'flight-from');
   searchRow.appendChild(fromGroup);
   
-  // To dropdown
-  const toGroup = createAirportDropdown(AIRPORTS, '', 'To', 'flight-to');
+  // To dropdown (default TQO)
+  const toGroup = createAirportDropdown(AIRPORTS, toDefault, 'To', 'flight-to');
   searchRow.appendChild(toGroup);
   
   // Date picker
@@ -243,21 +247,11 @@ function handleSearch() {
   const toInput = document.getElementById('flight-to');
   const dateInput = document.getElementById('flight-date');
   
-  const from = fromInput.value.trim();
-  const to = toInput.value.trim();
-  const date = dateInput.value;
+  const from = fromInput?.value?.trim() || '';
+  const to = toInput?.value?.trim() || '';
+  const date = dateInput?.value || '';
   
-  if (!from || !to) {
-    alert('Please select both From and To airports');
-    return;
-  }
-  
-  if (!date) {
-    alert('Please select a date');
-    return;
-  }
-  
-  // Build URL with query parameters
+  // Build URL with query parameters (from, to, date are optional)
   const isAuthor = isAuthorEnvironment();
   const { pathname } = window.location;
   let flightsPath;
@@ -326,16 +320,15 @@ function handleSearch() {
     }
   }
   
-  // Build query string
+  // Build query string (only include non-empty values)
   const params = new URLSearchParams();
-  params.set('from', from);
-  params.set('to', to);
-  if (date) {
-    params.set('date', date);
-  }
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (date) params.set('date', date);
   
-  // Redirect to flights page with query parameters
-  window.location.href = `${flightsPath}?${params.toString()}`;
+  const queryString = params.toString();
+  const url = queryString ? `${flightsPath}?${queryString}` : flightsPath;
+  window.location.href = url;
 }
 
 
@@ -358,28 +351,17 @@ export default async function decorate(block) {
   block.innerHTML = '';
   block.className = 'flight-search';
   
-  // Create search form
-  const form = createFlightSearchForm();
-  block.appendChild(form);
-  
-  // Setup click outside handler
-  setupClickOutside();
-  
-  // Check for URL parameters to pre-fill form
+  // Check for URL parameters to pre-fill form (override defaults when present)
   const urlParams = new URLSearchParams(window.location.search);
   const fromParam = urlParams.get('from');
   const toParam = urlParams.get('to');
   const dateParam = urlParams.get('date');
   
-  if (fromParam) {
-    const fromInput = document.getElementById('flight-from');
-    if (fromInput) fromInput.value = fromParam;
-  }
+  const form = createFlightSearchForm(fromParam || DEFAULT_FROM, toParam || DEFAULT_TO);
+  block.appendChild(form);
   
-  if (toParam) {
-    const toInput = document.getElementById('flight-to');
-    if (toInput) toInput.value = toParam;
-  }
+  // Setup click outside handler
+  setupClickOutside();
   
   if (dateParam) {
     const dateInput = document.getElementById('flight-date');

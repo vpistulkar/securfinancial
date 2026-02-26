@@ -2,9 +2,26 @@
  * Checkout block – consolidates selected flights from the flights block and shows Trip Summary.
  * Selected flights are stored in sessionStorage (wknd-fly-selected-flights) when user clicks Select on any flight.
  * Book Now on the flights block redirects to the checkout page where this block is authored.
+ * Confirm Purchase saves booking to sessionStorage and redirects to the confirmation page.
  */
 
 const TRIP_STORAGE_KEY = 'wknd-fly-selected-flights';
+const BOOKING_STORAGE_KEY = 'wknd-fly-booking-confirmation';
+
+const LIVE_CONFIRMATION_PATH = '/en/confirmation';
+
+function getConfirmationPath() {
+  if (typeof window === 'undefined') return LIVE_CONFIRMATION_PATH;
+  const isAuthor = window.location.hostname.includes('author') || window.location.hostname.includes('adobeaemcloud');
+  if (isAuthor) {
+    const pathname = window.location.pathname;
+    const enIndex = pathname.indexOf('/en/');
+    if (enIndex !== -1) return pathname.slice(0, enIndex + 4) + 'confirmation.html';
+    if (pathname.endsWith('/en')) return pathname + '/confirmation.html';
+    return '/en/confirmation.html';
+  }
+  return LIVE_CONFIRMATION_PATH;
+}
 
 function getSelectedFlights() {
   try {
@@ -36,6 +53,41 @@ function formatRoute(flight) {
   const fromCode = flight.from ? ` (${flight.from})` : '';
   const toCode = flight.to ? ` (${flight.to})` : '';
   return `${from}${fromCode} to ${to}${toCode}`;
+}
+
+function generateBookingReference() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = 'B';
+  for (let i = 0; i < 5; i += 1) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function generateElectronicTicketNumber() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let s = '';
+  for (let i = 0; i < 11; i += 1) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function generateItineraryNumber() {
+  let s = '';
+  for (let i = 0; i < 12; i += 1) s += Math.floor(Math.random() * 10);
+  return s;
+}
+
+function collectCheckoutFormData(block) {
+  const data = {};
+  const inputs = block.querySelectorAll('input, select');
+  inputs.forEach((el) => {
+    const name = el.getAttribute('name');
+    if (!name) return;
+    if (el.type === 'checkbox') {
+      data[name] = el.checked;
+    } else {
+      data[name] = el.value || '';
+    }
+  });
+  return data;
 }
 
 function renderTripSummary(container, onRemove) {
@@ -131,13 +183,13 @@ function renderPassengerForm(mainCol) {
     <h3 class="checkout-section-title">Passenger Information</h3>
     <p class="checkout-description">Please make sure your full name is entered exactly as it appears on your government-issued identification. This information is required based on international regulations. Refer to our <a href="/terms">Terms and Conditions</a> to learn more.</p>
     <div class="checkout-form">
-      <label>First Name <input type="text" name="firstName" required></label>
+      <label>First Name <input type="text" name="firstName"></label>
       <label>Middle Name (optional) <input type="text" name="middleName"></label>
-      <label>Last Name <input type="text" name="lastName" required></label>
+      <label>Last Name <input type="text" name="lastName"></label>
       <label>Birth Date <input type="text" name="birthDate" placeholder="mm/dd/yyyy"></label>
       <label>Gender <select name="gender"><option value="">Not Specified</option><option value="male">Male</option><option value="female">Female</option></select></label>
       <label>Frequent Flyer ID <input type="text" name="frequentFlyerId"></label>
-      <label>Email Address <input type="email" name="email" required></label>
+      <label>Email Address <input type="email" name="email"></label>
       <label>Phone Number <input type="tel" name="phone"></label>
       <label class="checkout-checkbox"><input type="checkbox" name="wknd-club"> I want to sign up for WKND Fly Club</label>
       <label class="checkout-checkbox"><input type="checkbox" name="sms"> I want to get SMS with booking confirmation</label>
@@ -181,12 +233,30 @@ function renderTripTotal(sidebar, total) {
   `;
   const confirmBtn = box.querySelector('.checkout-confirm-btn');
   if (confirmBtn) {
+    const block = document.querySelector('.checkout-block');
     confirmBtn.onclick = () => {
-      const form = document.querySelector('.checkout-form');
-      if (form && flights.length > 0) {
+      if (flights.length === 0) {
         // eslint-disable-next-line no-alert
-        alert('Thank you! Your booking request has been received. (This is a demo.)');
+        alert('Please add at least one flight to your trip before confirming.');
+        return;
       }
+      const formData = block ? collectCheckoutFormData(block) : {};
+      const bookingData = {
+        bookingReference: generateBookingReference(),
+        electronicTicketNumber: generateElectronicTicketNumber(),
+        itineraryNumber: generateItineraryNumber(),
+        total: flightsTotal,
+        passengerCount: 1,
+        flights: flights.map((f) => ({ ...f, route: formatRoute(f) })),
+        formData,
+      };
+      try {
+        sessionStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(bookingData));
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Could not save booking to sessionStorage', e);
+      }
+      window.location.href = getConfirmationPath();
     };
   }
   sidebar.appendChild(box);
