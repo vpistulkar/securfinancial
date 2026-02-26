@@ -89,6 +89,60 @@ const SAMPLE_FLIGHTS = {
   ],
 };
 
+// Trip / checkout: persist selected flights across pages (sessionStorage)
+const TRIP_STORAGE_KEY = 'wknd-fly-selected-flights';
+const DEFAULT_CHECKOUT_PATH = '/checkout';
+
+export function getSelectedFlights() {
+  try {
+    const raw = sessionStorage.getItem(TRIP_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function addFlightToTrip(flight) {
+  const list = getSelectedFlights();
+  const id = flight.id || `trip-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  list.push({ ...flight, id });
+  sessionStorage.setItem(TRIP_STORAGE_KEY, JSON.stringify(list));
+  return id;
+}
+
+export function removeFlightFromTrip(id) {
+  const list = getSelectedFlights().filter((f) => f.id !== id);
+  sessionStorage.setItem(TRIP_STORAGE_KEY, JSON.stringify(list));
+}
+
+export function getCheckoutPath() {
+  return DEFAULT_CHECKOUT_PATH;
+}
+
+function updateBookNowBar(barEl) {
+  const count = getSelectedFlights().length;
+  const link = barEl.querySelector('.flights-book-now-link');
+  const countEl = barEl.querySelector('.flights-book-now-count');
+  if (countEl) countEl.textContent = count;
+  barEl.classList.toggle('flights-book-now-bar-hidden', count === 0);
+  if (link) link.href = getCheckoutPath();
+}
+
+function addBookNowBar(block) {
+  let bar = block.querySelector('.flights-book-now-bar');
+  if (!bar) {
+    bar = createElement('div', 'flights-book-now-bar flights-book-now-bar-hidden');
+    const countSpan = createElement('span', 'flights-book-now-count', '0');
+    const link = createElement('a', 'flights-book-now-link', 'Book Now');
+    link.href = getCheckoutPath();
+    bar.appendChild(countSpan);
+    bar.appendChild(document.createTextNode(' flight(s) in trip — '));
+    bar.appendChild(link);
+    block.appendChild(bar);
+  }
+  updateBookNowBar(bar);
+}
+
 // Utility functions
 function createElement(tag, className, content) {
   const element = document.createElement(tag);
@@ -243,14 +297,27 @@ function displayFlightResults(flights, from, to, date, config = {}) {
   block.appendChild(resultsList);
 }
 
-// Handle flight selection
+// Handle flight selection: add to trip and show feedback
 function handleFlightSelect(flight) {
-  // In production, this would navigate to booking page or show booking modal
-  console.log('Selected flight:', flight);
-  alert(`Selected flight from ${flight.from} to ${flight.to} for $${flight.price.toFixed(2)}`);
-  
-  // You can add navigation or modal here
-  // window.location.href = `/book-flight?id=${flight.id}`;
+  const fullFlight = {
+    ...flight,
+    image: flight.image || '',
+    id: flight.id || `trip-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+  };
+  addFlightToTrip(fullFlight);
+  const count = getSelectedFlights().length;
+  const msg = count === 1
+    ? `Added to trip. Go to checkout to complete booking.`
+    : `${count} flights in your trip. Go to checkout to complete booking.`;
+  if (typeof window.showTripFeedback === 'function') {
+    window.showTripFeedback(msg);
+  } else {
+    // eslint-disable-next-line no-alert
+    alert(msg);
+  }
+  // Update Book Now visibility if present
+  const bookBar = document.querySelector('.flights-book-now-bar');
+  if (bookBar) updateBookNowBar(bookBar);
 }
 
 // Create a default flight item structure in the DOM (editable)
@@ -698,9 +765,10 @@ function processFlightItem(row) {
       }
     }
     
-    // Update select button handler
+    // Update select button handler (include image for checkout)
     if (selectButton) {
       selectButton.onclick = () => {
+        const imageUrl = readFieldValue('image') || '';
         handleFlightSelect({
           from,
           to,
@@ -709,7 +777,8 @@ function processFlightItem(row) {
           departureTime,
           arrivalTime,
           price: parseFloat(price) || 0,
-          class: flightClass
+          class: flightClass,
+          image: imageUrl,
         });
       };
     }
@@ -974,6 +1043,7 @@ export default async function decorate(block) {
     const route = `${urlFrom}-${urlTo}`;
     const flights = SAMPLE_FLIGHTS[route] || [];
     displayFlightResults(flights, urlFrom, urlTo, urlDate || config.defaultDate, config);
+    addBookNowBar(block);
     return;
   }
   
@@ -1104,5 +1174,6 @@ export default async function decorate(block) {
     resultsList.appendChild(item);
   });
   block.appendChild(resultsList);
+  addBookNowBar(block);
 }
 

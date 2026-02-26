@@ -208,3 +208,30 @@
   }
 }
 
+/* Book Now bar – redirect to checkout */
+.flights-book-now-bar {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--link-color, #0563c1);
+  color: #fff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.flights-book-now-bar-hidden {
+  display: none !important;
+}
+.flights-book-now-count {
+  font-weight: 700;
+}
+.flights-book-now-link {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.flights-book-now-link:hover {
+  text-decoration: none;
+}
+

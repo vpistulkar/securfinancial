@@ -1,0 +1,233 @@
+/**
+ * Checkout block – consolidates selected flights from the flights block and shows Trip Summary.
+ * Selected flights are stored in sessionStorage (wknd-fly-selected-flights) when user clicks Select on any flight.
+ * Book Now on the flights block redirects to the checkout page where this block is authored.
+ */
+
+const TRIP_STORAGE_KEY = 'wknd-fly-selected-flights';
+
+function getSelectedFlights() {
+  try {
+    const raw = sessionStorage.getItem(TRIP_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setSelectedFlights(list) {
+  sessionStorage.setItem(TRIP_STORAGE_KEY, JSON.stringify(list));
+}
+
+function removeFlight(id) {
+  const list = getSelectedFlights().filter((f) => f.id !== id);
+  setSelectedFlights(list);
+}
+
+function formatPrice(price) {
+  const n = parseFloat(price);
+  if (Number.isNaN(n)) return '$0.00';
+  return `$${n.toFixed(2)}`;
+}
+
+function formatRoute(flight) {
+  const from = flight.fromName || flight.from || '';
+  const to = flight.toName || flight.to || '';
+  const fromCode = flight.from ? ` (${flight.from})` : '';
+  const toCode = flight.to ? ` (${flight.to})` : '';
+  return `${from}${fromCode} to ${to}${toCode}`;
+}
+
+function renderTripSummary(container, onRemove) {
+  const flights = getSelectedFlights();
+  container.innerHTML = '';
+  if (flights.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'checkout-empty-trip';
+    empty.textContent = 'No flights in your trip. Add flights from the Flights block, then use Book Now to come here.';
+    container.appendChild(empty);
+    return 0;
+  }
+  const table = document.createElement('div');
+  table.className = 'checkout-trip-table';
+  const header = document.createElement('div');
+  header.className = 'checkout-trip-header';
+  header.innerHTML = '<span>NAME</span><span>QTY</span><span>PRICE</span><span></span>';
+  table.appendChild(header);
+  flights.forEach((flight) => {
+    const row = document.createElement('div');
+    row.className = 'checkout-trip-row';
+    const imgCell = document.createElement('div');
+    imgCell.className = 'checkout-trip-image';
+    if (flight.image) {
+      const pic = document.createElement('picture');
+      const img = document.createElement('img');
+      img.src = flight.image;
+      img.alt = formatRoute(flight);
+      pic.appendChild(img);
+      imgCell.appendChild(pic);
+    }
+    const routeCell = document.createElement('div');
+    routeCell.className = 'checkout-trip-route';
+    routeCell.textContent = formatRoute(flight);
+    const nameCell = document.createElement('div');
+    nameCell.className = 'checkout-trip-name';
+    nameCell.appendChild(imgCell);
+    nameCell.appendChild(routeCell);
+    const qtyCell = document.createElement('div');
+    qtyCell.className = 'checkout-trip-qty';
+    qtyCell.textContent = '1';
+    const priceCell = document.createElement('div');
+    priceCell.className = 'checkout-trip-price';
+    priceCell.textContent = formatPrice(flight.price);
+    const removeCell = document.createElement('div');
+    removeCell.className = 'checkout-trip-remove';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'checkout-remove-btn';
+    removeBtn.setAttribute('aria-label', 'Remove flight');
+    removeBtn.textContent = '×';
+    removeBtn.onclick = () => {
+      removeFlight(flight.id);
+      onRemove();
+    };
+    removeCell.appendChild(removeBtn);
+    row.appendChild(nameCell);
+    row.appendChild(qtyCell);
+    row.appendChild(priceCell);
+    row.appendChild(removeCell);
+    table.appendChild(row);
+  });
+  container.appendChild(table);
+  return flights.reduce((sum, f) => sum + (parseFloat(f.price) || 0), 0);
+}
+
+function renderUpgradeAndPreferences(mainCol) {
+  const section = document.createElement('div');
+  section.className = 'checkout-section';
+  section.innerHTML = `
+    <h3 class="checkout-section-title">Upgrade your trip</h3>
+    <label class="checkout-checkbox"><input type="checkbox" name="upgrade-points"> Upgrade class with points</label>
+    <label class="checkout-checkbox"><input type="checkbox" name="upgrade-luggage"> Add extra piece of checked-in luggage</label>
+  `;
+  mainCol.appendChild(section);
+  const prefs = document.createElement('div');
+  prefs.className = 'checkout-section';
+  prefs.innerHTML = `
+    <h3 class="checkout-section-title">Preferences</h3>
+    <div class="checkout-prefs">
+      <label>Seat <select name="seat"><option value="">Select...</option><option value="window">Window</option><option value="aisle">Aisle</option></select></label>
+      <label>Section <select name="section"><option value="">Select...</option><option value="front">Front</option><option value="rear">Rear</option></select></label>
+      <label>Meal <select name="meal"><option value="">Select...</option><option value="standard">Standard</option><option value="vegetarian">Vegetarian</option></select></label>
+    </div>
+  `;
+  mainCol.appendChild(prefs);
+}
+
+function renderPassengerForm(mainCol) {
+  const section = document.createElement('div');
+  section.className = 'checkout-section';
+  section.innerHTML = `
+    <h3 class="checkout-section-title">Passenger Information</h3>
+    <p class="checkout-description">Please make sure your full name is entered exactly as it appears on your government-issued identification. This information is required based on international regulations. Refer to our <a href="/terms">Terms and Conditions</a> to learn more.</p>
+    <div class="checkout-form">
+      <label>First Name <input type="text" name="firstName" required></label>
+      <label>Middle Name (optional) <input type="text" name="middleName"></label>
+      <label>Last Name <input type="text" name="lastName" required></label>
+      <label>Birth Date <input type="text" name="birthDate" placeholder="mm/dd/yyyy"></label>
+      <label>Gender <select name="gender"><option value="">Not Specified</option><option value="male">Male</option><option value="female">Female</option></select></label>
+      <label>Frequent Flyer ID <input type="text" name="frequentFlyerId"></label>
+      <label>Email Address <input type="email" name="email" required></label>
+      <label>Phone Number <input type="tel" name="phone"></label>
+      <label class="checkout-checkbox"><input type="checkbox" name="wknd-club"> I want to sign up for WKND Fly Club</label>
+      <label class="checkout-checkbox"><input type="checkbox" name="sms"> I want to get SMS with booking confirmation</label>
+      <label class="checkout-checkbox"><input type="checkbox" name="promo"> I want to receive electronic mail with promotions and announcements</label>
+    </div>
+  `;
+  mainCol.appendChild(section);
+}
+
+function renderPaymentForm(mainCol) {
+  const section = document.createElement('div');
+  section.className = 'checkout-section';
+  section.innerHTML = `
+    <h3 class="checkout-section-title">Payment Method</h3>
+    <p class="checkout-description">Only credit/debit card payments are accepted. Ignore this section if you chose to pay with Frequent Flyer program points.</p>
+    <div class="checkout-form">
+      <label>Name on Card <input type="text" name="nameOnCard"></label>
+      <label>Expiration <input type="text" name="expiration" placeholder="MM/YY"></label>
+      <label>Card Number <input type="text" name="cardNumber" placeholder="Card number"></label>
+      <label>CVV <input type="text" name="cvv" placeholder="CVV"></label>
+    </div>
+  `;
+  mainCol.appendChild(section);
+}
+
+function renderTripTotal(sidebar, total) {
+  sidebar.innerHTML = '';
+  const box = document.createElement('div');
+  box.className = 'checkout-total-box';
+  const flights = getSelectedFlights();
+  const passengerCount = 1;
+  const flightsTotal = total || 0;
+  box.innerHTML = `
+    <h3 class="checkout-total-title">Trip Total</h3>
+    <div class="checkout-total-row"><span>${passengerCount} Passenger</span></div>
+    <div class="checkout-total-row"><span>Flights</span><span>${formatPrice(flightsTotal)}</span></div>
+    <div class="checkout-total-row"><span>Taxes</span><span>included</span></div>
+    <hr class="checkout-total-divider">
+    <div class="checkout-total-row checkout-total-final"><span>Total</span><span>${formatPrice(flightsTotal)}</span></div>
+    <button type="button" class="checkout-confirm-btn">Confirm Purchase</button>
+  `;
+  const confirmBtn = box.querySelector('.checkout-confirm-btn');
+  if (confirmBtn) {
+    confirmBtn.onclick = () => {
+      const form = document.querySelector('.checkout-form');
+      if (form && flights.length > 0) {
+        // eslint-disable-next-line no-alert
+        alert('Thank you! Your booking request has been received. (This is a demo.)');
+      }
+    };
+  }
+  sidebar.appendChild(box);
+}
+
+export default async function decorate(block) {
+  block.classList.add('checkout-block');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'checkout-wrapper';
+  const mainCol = document.createElement('div');
+  mainCol.className = 'checkout-main';
+  const sidebar = document.createElement('div');
+  sidebar.className = 'checkout-sidebar';
+
+  const header = document.createElement('div');
+  header.className = 'checkout-header';
+  header.innerHTML = '<h1 class="checkout-title">Trip Summary</h1>';
+  mainCol.appendChild(header);
+
+  const tripSection = document.createElement('div');
+  tripSection.className = 'checkout-section checkout-trip-section';
+  const tripTitle = document.createElement('h3');
+  tripTitle.className = 'checkout-section-title';
+  tripTitle.textContent = 'Trip Summary';
+  tripSection.appendChild(tripTitle);
+  const tripContainer = document.createElement('div');
+  tripContainer.className = 'checkout-trip-container';
+  tripSection.appendChild(tripContainer);
+  mainCol.appendChild(tripSection);
+
+  const refreshTripAndTotal = () => {
+    const total = renderTripSummary(tripContainer, refreshTripAndTotal);
+    renderTripTotal(sidebar, total);
+  };
+
+  refreshTripAndTotal();
+  renderUpgradeAndPreferences(mainCol);
+  renderPassengerForm(mainCol);
+  renderPaymentForm(mainCol);
+
+  wrapper.appendChild(mainCol);
+  wrapper.appendChild(sidebar);
+  block.appendChild(wrapper);
+}
