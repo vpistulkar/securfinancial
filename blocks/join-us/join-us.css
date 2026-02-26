@@ -227,3 +227,7 @@ main .join-us .submit-wrapper button:hover {
   color: #fff;
   font-weight: 500;
 }
+main .join-us form {
+  display: block;
+  padding: 20px;
+}
