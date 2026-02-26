@@ -9,7 +9,7 @@
 
 .checkout-wrapper {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 2fr 1fr;
   gap: 2.5rem;
   align-items: start;
 }
@@ -236,17 +236,19 @@
   font-size: 0.9375rem;
 }
 
-/* Sidebar – Trip Total */
+/* Sidebar – Trip Total (proportional width, aligned with main content) */
 .checkout-sidebar {
   position: sticky;
   top: 1rem;
+  min-width: 0;
 }
 
 .checkout-total-box {
+  width: 100%;
   background: #f8f9fa;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 1.75rem;
+  padding: 1.75rem 2rem;
 }
 
 .checkout-total-title {
