@@ -650,8 +650,8 @@ main > .section {
 /* When full width is not selected, constrain section to content width and center */
 main > .section:not([data-sec-full-width="true"]) {
   max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 main > .section > div {
