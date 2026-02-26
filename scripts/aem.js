@@ -529,6 +529,7 @@ function decorateSections(main) {
 
 /**
  * Applies horizontal layout and percentage widths to section items when sec-item-widths is set.
+ * Targets only immediate children of .default-content-wrapper so nested elements (e.g. inner <p>) are not styled.
  * @param {Element} section The section element
  */
 function applySectionItemWidths(section) {
@@ -537,35 +538,43 @@ function applySectionItemWidths(section) {
     || '').trim();
   const inner = section.querySelector('.default-content-wrapper') || section.firstElementChild;
   if (!inner) return;
+  // Only ever style immediate children of the wrapper ( :scope > * )
+  const immediateChildren = [...inner.querySelectorAll(':scope > *')];
+  const clearWidths = (el) => {
+    el.style.flex = '';
+    el.style.maxWidth = '';
+    el.style.boxSizing = '';
+  };
   if (!raw) {
     section.classList.remove('section-horizontal-widths');
     inner.style.display = '';
     inner.style.flexDirection = '';
     inner.style.flexWrap = '';
-    [...inner.children].forEach((el) => {
-      el.style.flex = '';
-      el.style.maxWidth = '';
-      el.style.boxSizing = '';
-    });
+    immediateChildren.forEach(clearWidths);
+    // Clear any widths that were wrongly applied to descendants
+    inner.querySelectorAll('[style*="flex:"], [style*="max-width"]').forEach(clearWidths);
     return;
   }
   const widths = raw.split(',')
     .map((s) => parseInt(s.trim(), 10))
     .filter((n) => !Number.isNaN(n) && n > 0 && n <= 100);
   if (widths.length === 0) return;
+  const set = new Set(immediateChildren);
+  // Clear widths from nested elements only (not immediate children) so inner <p> etc. don't keep wrong %
+  inner.querySelectorAll('[style*="flex:"], [style*="max-width"]').forEach((el) => {
+    if (!set.has(el)) clearWidths(el);
+  });
   section.classList.add('section-horizontal-widths');
   inner.style.display = 'flex';
   inner.style.flexDirection = 'row';
   inner.style.flexWrap = 'nowrap';
-  [...inner.children].forEach((el, i) => {
+  immediateChildren.forEach((el, i) => {
     if (widths[i] != null) {
       el.style.flex = `0 0 ${widths[i]}%`;
       el.style.maxWidth = `${widths[i]}%`;
       el.style.boxSizing = 'border-box';
     } else {
-      el.style.flex = '';
-      el.style.maxWidth = '';
-      el.style.boxSizing = '';
+      clearWidths(el);
     }
   });
 }
