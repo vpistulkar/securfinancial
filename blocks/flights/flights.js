@@ -91,12 +91,21 @@ const SAMPLE_FLIGHTS = {
 
 // Trip / checkout: persist selected flights across pages (sessionStorage)
 const TRIP_STORAGE_KEY = 'wknd-fly-selected-flights';
-const DEFAULT_CHECKOUT_PATH = '/checkout';
+// Live: site-relative path. Author: derive from current path (path up to /en/ + checkout.html)
+const LIVE_CHECKOUT_PATH = '/en/checkout';
+
+function getAuthorCheckoutPath() {
+  const pathname = window.location.pathname;
+  const enIndex = pathname.indexOf('/en/');
+  if (enIndex !== -1) return pathname.slice(0, enIndex + 4) + 'checkout.html';
+  if (pathname.endsWith('/en')) return pathname + '/checkout.html';
+  return '/en/checkout.html';
+}
 
 export function getCheckoutPath() {
-  const base = (typeof window !== 'undefined' && window.hlx?.codeBasePath) || '';
-  const path = base ? `${base.replace(/\/$/, '')}/checkout` : DEFAULT_CHECKOUT_PATH;
-  return path;
+  if (typeof window === 'undefined') return LIVE_CHECKOUT_PATH;
+  const isAuthor = window.location.hostname.includes('author') || window.location.hostname.includes('adobeaemcloud');
+  return isAuthor ? getAuthorCheckoutPath() : LIVE_CHECKOUT_PATH;
 }
 
 export function getSelectedFlights() {
