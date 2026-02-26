@@ -37,7 +37,8 @@
       "user-registration",
       "sign-in",
       "membership",
-      "checkout"
+      "checkout",
+      "confirmation"
     ]
   },
   {
