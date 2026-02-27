@@ -22,10 +22,9 @@ export default function decorate(block) {
       li.className = cardStyle;
     }
 
-    // Read CTA style from the fourth div (index 3)
-    const ctaDiv = row.children[3];
-    const ctaParagraph = ctaDiv?.querySelector('p');
-    const ctaStyle = ctaParagraph?.textContent?.trim() || 'default';
+    // Read CTA style by attribute so it works regardless of column order (AEM authoring)
+    const ctaStyleEl = row.querySelector('p[data-aue-prop="ctastyle"]') || row.querySelector('[data-aue-prop="ctastyle"]');
+    const ctaStyle = ctaStyleEl?.textContent?.trim() || 'default';
     
     // Read image style by attribute so it works regardless of column order (AEM authoring)
     const imageStyleParagraph = row.querySelector('p[data-aue-prop="imagestyle"]') || row.querySelector('[data-aue-prop="imagestyle"]');
