@@ -524,7 +524,7 @@
   Uncomment when ready to test with new card authoring fields.
   --------------------------
 
-  Alignment
+  Alignment */ 
 .cards > ul > li.cards-card--alignment-left,
 .cards > ul > li.cards-card--alignment-left .cards-card-body {
   text-align: left;
@@ -540,7 +540,7 @@
   text-align: right;
 }
 
-  Vertical alignment (content area)
+/*
 .cards > ul > li.cards-card--verticalalignment-top .cards-card-body {
   justify-content: flex-start;
 }
@@ -551,8 +551,8 @@
 
 .cards > ul > li.cards-card--verticalalignment-bottom .cards-card-body {
   justify-content: flex-end;
-}
-
+}*/
+/*
   Selectable
 .cards > ul > li.cards-card--selectable {
   cursor: pointer;
