@@ -1156,3 +1156,113 @@ table {
   --main-accent-color: #C2410C; /* darker orange for contrast */
   --link-hover-color: #9A3412;  /* darker hover */
 }
+
+/* Cookie consent modal (injected by Launch) – centered overlay + white card */
+#consentModal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+#consentModal .consentmodal-content {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 560px;
+  min-height: auto !important;
+  height: auto !important;
+  bottom: auto !important;
+  padding: 1.75rem 2rem 2rem;
+  border-radius: 10px;
+  background-color: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+#consentModal .close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #555;
+  background-color: #e9ecef;
+  border: 1px solid #dee2e6;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+#consentModal .close:hover {
+  background-color: #dee2e6;
+  color: #333;
+}
+
+#consentModal .consentmodal-content p {
+  font-weight: normal;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+  margin: 0 2rem 0 0;
+  padding-right: 0.5rem;
+}
+
+#consentModal .consentmodal-content a[href="#"] {
+  color: #0563c1;
+  text-decoration: underline;
+}
+
+#consentModal .consentmodal-content a[href="#"]:hover {
+  color: #034a94;
+}
+
+#consentModal .consentmodal-content > div {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+#consentModal .action_btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: filter 0.2s, background-color 0.2s;
+}
+
+#consentModal #allow.btn_1.action_btn {
+  background-color: #0563c1;
+  color: #fff;
+  margin-right: 0;
+}
+
+#consentModal #allow.btn_1.action_btn:hover {
+  filter: brightness(1.08);
+}
+
+#consentModal #disable.btn_3.action_btn {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+#consentModal #disable.btn_3.action_btn:hover {
+  filter: brightness(1.1);
+}
