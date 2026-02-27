@@ -28,6 +28,9 @@ import {
   getHostname
 } from './utils.js';
 
+// Import dataLayer management (available immediately)
+import './datalayer.js';
+
 function addPreconnect(origin) {
   try {
     if (!origin) return;

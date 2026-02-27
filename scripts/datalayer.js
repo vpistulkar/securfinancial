@@ -1,0 +1,291 @@
+// ==========================================
+// DataLayer Management System - WKND Fly
+// Only properties present in data-elements.json are initialized.
+// No checkout (not in data-elements). Cart has only total (Reservation-TotalValue).
+// ==========================================
+
+window._dataLayerQueue = window._dataLayerQueue || [];
+window._dataLayerReady = false;
+window._dataLayerUpdating = false;
+
+let _dataLayer = null;
+
+const STORAGE_KEY = 'wkndfly_dataLayer';
+const STORAGE_TIMESTAMP_KEY = 'wkndfly_dataLayer_timestamp';
+const STORAGE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function isObject(item) {
+  return item && typeof item === 'object' && !Array.isArray(item);
+}
+
+function deepMerge(target, source) {
+  if (!target) {
+    return isObject(source) ? { ...source } : source;
+  }
+  const output = { ...target };
+  if (isObject(target) && isObject(source)) {
+    Object.keys(source).forEach((key) => {
+      if (isObject(source[key])) {
+        if (!target[key] || !isObject(target[key])) {
+          output[key] = { ...source[key] };
+        } else {
+          output[key] = deepMerge(target[key], source[key]);
+        }
+      } else {
+        output[key] = source[key];
+      }
+    });
+  }
+  return output;
+}
+
+function dispatchDataLayerEvent(eventType = 'initialized') {
+  document.dispatchEvent(
+    new CustomEvent('dataLayerUpdated', {
+      bubbles: true,
+      detail: {
+        dataLayer: JSON.parse(JSON.stringify(_dataLayer)),
+        type: eventType,
+      },
+    })
+  );
+}
+
+function processDataLayerQueue() {
+  if (window._dataLayerQueue && window._dataLayerQueue.length > 0) {
+    window._dataLayerQueue.forEach((queuedUpdate) => {
+      const { updates, merge } = queuedUpdate;
+      if (merge) {
+        _dataLayer = deepMerge(_dataLayer, updates);
+      } else {
+        _dataLayer = { ..._dataLayer, ...updates };
+      }
+    });
+    try {
+      const now = Date.now().toString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(_dataLayer));
+      localStorage.setItem(STORAGE_TIMESTAMP_KEY, now);
+    } catch (storageError) {
+      console.warn('⚠ Could not persist dataLayer:', storageError.message);
+    }
+    window._dataLayerQueue = [];
+    dispatchDataLayerEvent('updated');
+  }
+}
+
+/**
+ * Initial dataLayer structure only from paths in data-elements.json.
+ * project: only id, currency (Project-ID, Currency). No locale.
+ * cart: only total (Reservation-TotalValue).
+ */
+function getInitialDataLayerFromDataElements() {
+  return {
+    project: {
+      id: 'wknd-fly',
+      currency: 'USD',
+    },
+    page: {
+      thumbnail: '',
+      name: 'home',
+      title: 'HOME',
+    },
+    product: {
+      id: '',
+      image: '',
+      name: '',
+      category: '',
+    },
+    cart: {
+      total: 0,
+    },
+    to: '',
+    from: '',
+    date: '',
+    bookingReference: '',
+    flightLength: '',
+    flightNumber: '',
+    ticketNumber: '',
+    itineraryNumber: '',
+    class: '',
+    travelPreferences: {
+      seat: '',
+      seatSection: '',
+      meal: '',
+    },
+    wizard: {
+      name: '',
+    },
+    options: {
+      familyTrip: false,
+    },
+    partnerData: {
+      Presence_of_premimum_credit_card: '',
+      PandemicResponseNewTravelFlexibleScale: '',
+      VacationSpenders: '',
+      PartnerID: '',
+      InterestInTravel: '',
+    },
+    payment: {
+      nameOnCard: '',
+      cardExpiration: '',
+      cvv: '',
+      cardNumber: '',
+    },
+    smsConsent: false,
+    loyaltyConsent: false,
+    person: {
+      name: {
+        firstName: '',
+        lastName: '',
+      },
+      gender: '',
+      birthDate: '',
+      isMember: false,
+    },
+    consents: {},
+    homeAddress: {
+      postalCode: '',
+      city: '',
+      street1: '',
+    },
+    profile: {
+      cookiePolicy: '',
+    },
+    _demosystem4: {
+      identification: {
+        core: {
+          loyaltyId: '',
+        },
+      },
+    },
+    personalEmail: {
+      address: '',
+    },
+    mobilePhone: {
+      number: '',
+    },
+  };
+}
+
+export function buildCustomDataLayer() {
+  try {
+    const savedDataLayer = localStorage.getItem(STORAGE_KEY);
+    const savedTimestamp = localStorage.getItem(STORAGE_TIMESTAMP_KEY);
+
+    let isDataValid = false;
+    if (savedDataLayer && savedTimestamp) {
+      const cacheAge = Date.now() - parseInt(savedTimestamp, 10);
+      if (cacheAge <= STORAGE_TTL) {
+        isDataValid = true;
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_TIMESTAMP_KEY);
+      }
+    }
+
+    if (savedDataLayer && isDataValid) {
+      _dataLayer = JSON.parse(savedDataLayer);
+    } else {
+      _dataLayer = getInitialDataLayerFromDataElements();
+    }
+
+    if (!_dataLayer.page) _dataLayer.page = {};
+    _dataLayer.page.title = document.title || _dataLayer.page.title;
+    _dataLayer.page.name = (document.title || '').toLowerCase() || _dataLayer.page.name;
+
+    try {
+      const now = Date.now().toString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(_dataLayer));
+      localStorage.setItem(STORAGE_TIMESTAMP_KEY, now);
+    } catch (storageError) {
+      console.warn('⚠ Could not persist dataLayer:', storageError.message);
+    }
+
+    Object.defineProperty(window, 'dataLayer', {
+      get() {
+        return JSON.parse(JSON.stringify(_dataLayer));
+      },
+      set() {
+        console.error(
+          '❌ Direct assignment to window.dataLayer is not allowed. Use window.updateDataLayer() instead.'
+        );
+        throw new Error('Direct modification of dataLayer is prohibited. Use updateDataLayer() method.');
+      },
+      configurable: false,
+      enumerable: true,
+    });
+
+    window._dataLayerReady = true;
+    processDataLayerQueue();
+
+    setTimeout(() => {
+      dispatchDataLayerEvent(savedDataLayer ? 'restored' : 'initialized');
+    }, 0);
+  } catch (error) {
+    console.error('Error initializing dataLayer:', error);
+    _dataLayer = getInitialDataLayerFromDataElements();
+    Object.defineProperty(window, 'dataLayer', {
+      get() { return JSON.parse(JSON.stringify(_dataLayer)); },
+      set() { console.error('❌ Direct assignment to window.dataLayer is not allowed.'); },
+    });
+    window._dataLayerReady = true;
+    processDataLayerQueue();
+  }
+}
+
+window.updateDataLayer = function (updates, merge = true) {
+  if (!updates || typeof updates !== 'object') {
+    console.error('Invalid updates provided to updateDataLayer');
+    return;
+  }
+  if (!window._dataLayerReady || !_dataLayer) {
+    window._dataLayerQueue.push({ updates, merge });
+    return;
+  }
+  window._dataLayerUpdating = true;
+  if (merge) {
+    _dataLayer = deepMerge(_dataLayer, updates);
+  } else {
+    _dataLayer = { ..._dataLayer, ...updates };
+  }
+  try {
+    const now = Date.now().toString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(_dataLayer));
+    localStorage.setItem(STORAGE_TIMESTAMP_KEY, now);
+  } catch (storageError) {
+    console.warn('⚠ Could not persist dataLayer:', storageError.message);
+  }
+  window._dataLayerUpdating = false;
+  dispatchDataLayerEvent('updated');
+};
+
+window.getDataLayerProperty = function (path) {
+  if (!_dataLayer) return undefined;
+  if (!path) return JSON.parse(JSON.stringify(_dataLayer));
+  const keys = path.split('.');
+  let value = _dataLayer;
+  for (const key of keys) {
+    if (value && typeof value === 'object' && key in value) {
+      value = value[key];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : value;
+};
+
+window.clearDataLayer = function () {
+  window._dataLayerQueue = [];
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_TIMESTAMP_KEY);
+};
+
+window.getDataLayerQueueStatus = function () {
+  return {
+    ready: window._dataLayerReady,
+    dataLayerQueueLength: window._dataLayerQueue ? window._dataLayerQueue.length : 0,
+    dataLayerQueue: window._dataLayerQueue || [],
+  };
+};
+
+buildCustomDataLayer();
