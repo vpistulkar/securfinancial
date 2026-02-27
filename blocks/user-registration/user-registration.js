@@ -5,16 +5,16 @@ export default async function decorate(block) {
   /* Hide button config rows on published/live, same as hero/cards */
   [...block.children].forEach((row) => { row.style.display = 'none'; });
 
-  // Build Adaptive Form definition for User Registration
+  // Build Adaptive Form definition for User Registration (fields per design)
   const formDef = {
     id: "user-registration",
     fieldType: "form",
     appliedCssClassNames: "user-registration-form",
     items: [
       {
-        id: "heading-create-account",
+        id: "heading-register",
         fieldType: "heading",
-        label: { value: "Create an account" },
+        label: { value: "Register to WKND Fly" },
         appliedCssClassNames: "col-12",
       },
       {
@@ -42,7 +42,7 @@ export default async function decorate(block) {
             id: "email",
             name: "email",
             fieldType: "email",
-            label: { value: "Email address" },
+            label: { value: "Email" },
             required: true,
             properties: { colspan: 6 },
           },
@@ -54,74 +54,20 @@ export default async function decorate(block) {
             properties: { colspan: 6 },
           },
           {
-            id: "address",
-            name: "address",
-            fieldType: "text-input",
-            label: { value: "Address" },
+            id: "wkndFlyMember",
+            name: "wkndFlyMember",
+            fieldType: "drop-down",
+            label: { value: "WKND Fly Member" },
+            enum: ["", "member", "non-member"],
+            enumNames: ["Select...", "Member", "Non-member"],
+            type: "string",
             properties: { colspan: 12 },
           },
           {
-            id: "zip",
-            name: "zip",
-            fieldType: "text-input",
-            label: { value: "ZIP code" },
-            properties: { colspan: 6 },
-          },
-          {
-            id: "city",
-            name: "city",
-            fieldType: "text-input",
-            label: { value: "City" },
-            properties: { colspan: 6 },
-          },
-          {
-            id: "country",
-            name: "country",
-            fieldType: "drop-down",
-            label: { value: "Country" },
-            enum: [
-              "United States",
-              "Canada",
-              "United Kingdom",
-              "Australia",
-              "India",
-              "Other",
-            ],
-            enumNames: [
-              "United States",
-              "Canada",
-              "United Kingdom",
-              "Australia",
-              "India",
-              "Other",
-            ],
-            type: "string",
-            properties: { colspan: 6 },
-          },
-          {
-            id: "gender",
-            name: "gender",
-            fieldType: "drop-down",
-            label: { value: "Gender" },
-            enum: ["female", "male", "other", "prefer not to say"],
-            enumNames: ["Female", "Male", "Other", "Prefer not to say"],
-            type: "string",
-            properties: { colspan: 6 },
-          },
-          {
-            id: "dob-mmdd",
-            name: "dob",
-            fieldType: "text-input",
-            label: { value: "Birth day and month (MM-DD)" },
-            placeholder: "MM-DD",
-            pattern: "^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
-            properties: { colspan: 6 },
-          },
-          {
-            id: "loyalty",
-            name: "loyalty",
+            id: "emailComm",
+            name: "emailComm",
             fieldType: "checkbox",
-            label: { value: "I want to join loyalty program" },
+            label: { value: "I want to receive personalized communication by email" },
             enum: ["true"],
             type: "string",
             properties: {
@@ -131,66 +77,11 @@ export default async function decorate(block) {
             },
           },
           {
-            id: "comm-prefs",
-            name: "commPrefs",
-            fieldType: "checkbox-group",
-            label: { value: "Communication preferences" },
-            enum: ["email", "phone", "sms"],
-            enumNames: ["Email", "Phone", "SMS"],
-            type: "array",
-            appliedCssClassNames: "horizontal col-12",
-          },
-          {
-            id: "heading-better",
-            fieldType: "heading",
-            label: { value: "LET US KNOW YOU BETTER" },
-            appliedCssClassNames: "col-12",
-          },
-          {
-            id: "shoe-size",
-            name: "shoeSize",
-            fieldType: "drop-down",
-            label: { value: "Shoe size" },
-            enum: ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
-            type: "string",
-            properties: { colspan: 6 },
-          },
-          {
-            id: "shirt-size",
-            name: "shirtSize",
-            fieldType: "drop-down",
-            label: { value: "Shirt size" },
-            enum: ["XS", "S", "M", "L", "XL", "XXL"],
-            type: "string",
-            properties: { colspan: 6 },
-          },
-          {
-            id: "favorite-color",
-            name: "favoriteColor",
-            fieldType: "drop-down",
-            label: { value: "Favorite color" },
-            enum: [
-              "Black",
-              "Blue",
-              "Brown",
-              "Green",
-              "Grey",
-              "Orange",
-              "Pink",
-              "Purple",
-              "Red",
-              "White",
-              "Yellow",
-            ],
-            type: "string",
-            properties: { colspan: 12 },
-          },
-          {
             id: "submit-btn",
             name: "submitButton",
             fieldType: "button",
             buttonType: "submit",
-            label: { value: "SUBMIT" },
+            label: { value: "REGISTER" },
             appliedCssClassNames: "submit-wrapper col-12",
           },
         ],
@@ -217,6 +108,7 @@ export default async function decorate(block) {
     attachDataLayerUpdaters(block);
     prePopulateFormFromDataLayer(block);
     attachFormSubmitHandler(block);
+    addSignInLink(block);
   }, 100);
 }
 
@@ -336,52 +228,20 @@ function attachFormSubmitHandler(block) {
 function updateAllDataLayerFields(formData) {
   if (!window.updateDataLayer) return;
 
-  // Build complete dataLayer update object
   const updateObj = {
-    personalEmail: {
-      address: formData.email || "",
-    },
-    mobilePhone: {
-      number: formData.phone || "",
-    },
-    homeAddress: {
-      street1: formData.address || "",
-      city: formData.city || "",
-      postalCode: formData.zip || "",
-      country: formData.country || "",
-    },
+    personalEmail: { address: formData.email || "" },
+    mobilePhone: { number: formData.phone || "" },
     person: {
-      gender: formData.gender || "",
-      birthDayAndMonth: formData.dob || "",
-      loyaltyConsent: formData.loyalty === "true" || formData.loyalty === true,
       name: {
         firstName: formData.firstName || "",
         lastName: formData.lastName || "",
       },
-    },
-    individualCharacteristics: {
-      retail: {
-        shoeSize: formData.shoeSize || "",
-        shirtSize: formData.shirtSize || "",
-        favoriteColor: formData.favoriteColor || "",
-      },
+      wkndFlyMember: formData.wkndFlyMember || "",
     },
     consents: {
       marketing: {
         email: {
-          val:
-            Array.isArray(formData.commPrefs) &&
-            formData.commPrefs.includes("email"),
-        },
-        call: {
-          val:
-            Array.isArray(formData.commPrefs) &&
-            formData.commPrefs.includes("phone"),
-        },
-        sms: {
-          val:
-            Array.isArray(formData.commPrefs) &&
-            formData.commPrefs.includes("sms"),
+          val: formData.emailComm === "true" || formData.emailComm === true,
         },
       },
     },
@@ -462,6 +322,29 @@ function showErrorMessage(form, message) {
 }
 
 /**
+ * Adds "Already have an account? Sign In" link below the form
+ * @param {HTMLElement} block - The user registration block
+ */
+function addSignInLink(block) {
+  const form = block.querySelector("form");
+  if (!form) return;
+  const wrapper = form.closest(".form") || form.parentElement;
+  if (!wrapper) return;
+  const existing = wrapper.querySelector(".user-registration-sign-in-link");
+  if (existing) return;
+
+  const signInDiv = document.createElement("div");
+  signInDiv.className = "user-registration-sign-in-link";
+  signInDiv.style.cssText = "margin-top: 1rem; text-align: center;";
+  const signInAnchor = document.createElement("a");
+  signInAnchor.href = "/en/sign-in";
+  signInAnchor.textContent = "Sign In";
+  signInAnchor.style.color = "#2874F0";
+  signInDiv.append(document.createTextNode("Already have an account? "), signInAnchor);
+  wrapper.appendChild(signInDiv);
+}
+
+/**
  * Pre-populates form fields from existing dataLayer values
  * @param {HTMLElement} block - The user registration block
  */
@@ -488,11 +371,7 @@ function prePopulateFormFromDataLayer(block) {
       if (!field) return;
 
       if (field.type === "checkbox") {
-        if (fieldName === "loyalty") {
-          field.checked = value === true || value === "true";
-        } else {
-          field.checked = true;
-        }
+        field.checked = value === true || value === "true";
       } else if (field.tagName.toLowerCase() === "select") {
         field.value = value;
       } else {
@@ -501,24 +380,11 @@ function prePopulateFormFromDataLayer(block) {
     }
   });
 
-  // Pre-populate communication preferences
-  if (dataLayer.consents?.marketing) {
-    const commPrefsCheckboxes = form.querySelectorAll(
-      'input[name="commPrefs"]'
-    );
-    commPrefsCheckboxes.forEach((checkbox) => {
-      const prefType = checkbox.value; // 'email', 'phone', 'sms'
-      if (prefType === "email" && dataLayer.consents.marketing.email?.val) {
-        checkbox.checked = true;
-      } else if (
-        prefType === "phone" &&
-        dataLayer.consents.marketing.call?.val
-      ) {
-        checkbox.checked = true;
-      } else if (prefType === "sms" && dataLayer.consents.marketing.sms?.val) {
-        checkbox.checked = true;
-      }
-    });
+  // Pre-populate email communication checkbox
+  const emailCommVal = getNestedProperty(dataLayer, "consents.marketing.email.val");
+  if (emailCommVal === true || emailCommVal === "true") {
+    const emailCommField = form.querySelector('[name="emailComm"]');
+    if (emailCommField) emailCommField.checked = true;
   }
 }
 
@@ -530,16 +396,8 @@ const fieldToDataLayerMap = {
   lastName: "person.name.lastName",
   email: "personalEmail.address",
   phone: "mobilePhone.number",
-  address: "homeAddress.street1",
-  zip: "homeAddress.postalCode",
-  city: "homeAddress.city",
-  country: "homeAddress.country",
-  gender: "person.gender",
-  dob: "person.birthDayAndMonth",
-  loyalty: "person.loyaltyConsent",
-  shoeSize: "individualCharacteristics.retail.shoeSize",
-  shirtSize: "individualCharacteristics.retail.shirtSize",
-  favoriteColor: "individualCharacteristics.retail.favoriteColor",
+  wkndFlyMember: "person.wkndFlyMember",
+  emailComm: "consents.marketing.email.val",
 };
 
 /**
@@ -554,16 +412,8 @@ function updateDataLayerField(fieldName, value) {
   }
 
   const dataLayerPath = fieldToDataLayerMap[fieldName];
-  if (!dataLayerPath) {
-    // Handle communication preferences separately
-    if (fieldName === "commPrefs") {
-      updateCommunicationPreferences(value);
-      return;
-    }
-    return;
-  }
+  if (!dataLayerPath) return;
 
-  // Build the nested object structure
   const pathParts = dataLayerPath.split(".");
   const updateObj = {};
   let current = updateObj;
@@ -573,37 +423,13 @@ function updateDataLayerField(fieldName, value) {
     current = current[pathParts[i]];
   }
 
-  // Convert loyalty checkbox to boolean
-  if (fieldName === "loyalty") {
-    current[pathParts[pathParts.length - 1]] =
-      value === "true" ||
-      value === true ||
-      (Array.isArray(value) && value.includes("true"));
+  if (fieldName === "emailComm") {
+    current[pathParts[pathParts.length - 1]] = value === "true" || value === true;
   } else {
     current[pathParts[pathParts.length - 1]] = value || "";
   }
 
   window.updateDataLayer(updateObj);
-}
-
-/**
- * Updates communication preferences in dataLayer
- * @param {Array} preferences - Array of selected preferences ['email', 'phone', 'sms']
- */
-function updateCommunicationPreferences(preferences = []) {
-  if (!window.updateDataLayer) return;
-
-  const prefsArray = Array.isArray(preferences) ? preferences : [];
-
-  window.updateDataLayer({
-    consents: {
-      marketing: {
-        email: { val: prefsArray.includes("email") },
-        call: { val: prefsArray.includes("phone") },
-        sms: { val: prefsArray.includes("sms") },
-      },
-    },
-  });
 }
 
 /**
@@ -617,26 +443,20 @@ function attachDataLayerUpdaters(block) {
     return;
   }
 
-  // Get all form fields (inputs, selects, textareas)
   const fields = form.querySelectorAll("input, select, textarea");
 
   fields.forEach((field) => {
     const fieldName = field.name || field.id;
     if (!fieldName) return;
 
-    // Handle different field types
     if (field.type === "checkbox" || field.type === "radio") {
-      // For checkboxes and radios, use change event
       field.addEventListener("change", () => {
         handleFieldUpdate(form, fieldName, field);
       });
     } else {
-      // For text inputs, selects, etc., use blur event
       field.addEventListener("blur", () => {
         handleFieldUpdate(form, fieldName, field);
       });
-
-      // Also update on change for dropdowns
       if (field.tagName.toLowerCase() === "select") {
         field.addEventListener("change", () => {
           handleFieldUpdate(form, fieldName, field);
@@ -644,19 +464,6 @@ function attachDataLayerUpdaters(block) {
       }
     }
   });
-
-  // Handle checkbox groups (communication preferences)
-  const commPrefsCheckboxes = form.querySelectorAll('input[name="commPrefs"]');
-  if (commPrefsCheckboxes.length > 0) {
-    commPrefsCheckboxes.forEach((checkbox) => {
-      checkbox.addEventListener("change", () => {
-        const selectedPrefs = Array.from(commPrefsCheckboxes)
-          .filter((cb) => cb.checked)
-          .map((cb) => cb.value);
-        updateDataLayerField("commPrefs", selectedPrefs);
-      });
-    });
-  }
 }
 
 /**
