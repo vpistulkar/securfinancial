@@ -257,7 +257,7 @@ function renderPassengerForm(mainCol) {
       <label>Gender <select name="gender"><option value="">Not Specified</option><option value="male">Male</option><option value="female">Female</option></select></label>
       <label>Frequent Flyer ID <input type="text" name="frequentFlyerId"></label>
       <label>Email Address <input type="email" name="email"></label>
-      <label>Phone Number <input type="tel" name="phone"></label>
+      <label>Phone Number <input type="tel" name="phone" inputmode="numeric" pattern="[0-9]*" maxlength="20" placeholder="Digits only"></label>
       <label class="checkout-checkbox"><input type="checkbox" name="wknd-club"> I want to sign up for WKND Fly Club</label>
       <label class="checkout-checkbox"><input type="checkbox" name="sms"> I want to get SMS with booking confirmation</label>
       <label class="checkout-checkbox"><input type="checkbox" name="promo"> I want to receive electronic mail with promotions and announcements</label>
@@ -275,8 +275,8 @@ function renderPaymentForm(mainCol) {
     <div class="checkout-form">
       <label>Name on Card <input type="text" name="nameOnCard"></label>
       <label>Expiration <input type="text" name="expiration" placeholder="MM/YY"></label>
-      <label>Card Number <input type="text" name="cardNumber" placeholder="Card number"></label>
-      <label>CVV <input type="text" name="cvv" placeholder="CVV"></label>
+      <label>Card Number <input type="text" name="cardNumber" inputmode="numeric" pattern="[0-9]*" maxlength="19" placeholder="Digits only"></label>
+      <label>CVV <input type="text" name="cvv" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="3 or 4 digits"></label>
     </div>
   `;
   mainCol.appendChild(section);
@@ -379,5 +379,34 @@ export default async function decorate(block) {
   wrapper.appendChild(sidebar);
   block.appendChild(wrapper);
 
+  restrictNumericFieldsToDigits(block);
+  formatBirthDateInput(block);
   attachCheckoutDataLayerListeners(block);
+}
+
+/** Restrict phone, card number, CVV to digits only (strip non-numeric on input) */
+function restrictNumericFieldsToDigits(block) {
+  const numericNames = ['phone', 'cardNumber', 'cvv'];
+  numericNames.forEach((name) => {
+    const el = block.querySelector(`[name="${name}"]`);
+    if (!el || el.type === 'hidden') return;
+    el.addEventListener('input', () => {
+      const digits = el.value.replace(/\D/g, '');
+      if (el.value !== digits) el.value = digits;
+    });
+  });
+}
+
+/** Birth date: accept digits only and auto-format to mm/dd/yyyy (works with or without slashes) */
+function formatBirthDateInput(block) {
+  const el = block.querySelector('[name="birthDate"]');
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const digits = el.value.replace(/\D/g, '').slice(0, 8);
+    let formatted = '';
+    if (digits.length > 0) formatted = digits.slice(0, 2);
+    if (digits.length > 2) formatted += `/${digits.slice(2, 4)}`;
+    if (digits.length > 4) formatted += `/${digits.slice(4, 8)}`;
+    if (el.value !== formatted) el.value = formatted;
+  });
 }
