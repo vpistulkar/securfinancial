@@ -98,8 +98,8 @@ function getInitialDataLayerFromDataElements() {
     cart: {
       total: 0,
     },
-    to: '',
-    from: '',
+    to: 'TQO',
+    from: 'WAW',
     date: '',
     bookingReference: '',
     flightLength: '',
@@ -116,7 +116,10 @@ function getInitialDataLayerFromDataElements() {
       name: '',
     },
     options: {
+      businessClass: false,
+      businessTrip: false,
       familyTrip: false,
+      payWithPoints: false,
     },
     partnerData: {
       Presence_of_premimum_credit_card: '',

@@ -121,6 +121,7 @@ function createAirportDropdown(airports, selectedCode, placeholder, id) {
     `;
     option.addEventListener('click', () => {
       input.value = airport.code;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
       dropdown.style.display = 'none';
       inputContainer.classList.remove('open');
       // Trigger search if both fields are filled
@@ -332,6 +333,45 @@ function handleSearch() {
 }
 
 
+// Push current flight search form values to datalayer (from, to, date, options)
+function updateFlightSearchDataLayer() {
+  if (typeof window.updateDataLayer !== 'function') return;
+  const fromInput = document.getElementById('flight-from');
+  const toInput = document.getElementById('flight-to');
+  const dateInput = document.getElementById('flight-date');
+  const businessTrip = document.getElementById('business-trip');
+  const businessClass = document.getElementById('business-class');
+  const travellingChildren = document.getElementById('travelling-children');
+  const updates = {
+    from: fromInput?.value?.trim() || '',
+    to: toInput?.value?.trim() || '',
+    date: dateInput?.value || '',
+    options: {
+      businessTrip: businessTrip?.checked ?? false,
+      businessClass: businessClass?.checked ?? false,
+      familyTrip: travellingChildren?.checked ?? false,
+    },
+  };
+  window.updateDataLayer(updates, true);
+}
+
+// Attach listeners so datalayer updates as soon as user changes dropdown, date, or checkboxes
+function attachFlightSearchDataLayerUpdates(block) {
+  const form = block.querySelector('.flight-search-form');
+  if (!form) return;
+  updateFlightSearchDataLayer(); // set initial values
+  const fromInput = document.getElementById('flight-from');
+  const toInput = document.getElementById('flight-to');
+  const dateInput = document.getElementById('flight-date');
+  const businessTrip = document.getElementById('business-trip');
+  const businessClass = document.getElementById('business-class');
+  const travellingChildren = document.getElementById('travelling-children');
+  [fromInput, toInput, dateInput, businessTrip, businessClass, travellingChildren].forEach((el) => {
+    if (el) el.addEventListener('change', updateFlightSearchDataLayer);
+  });
+  if (dateInput) dateInput.addEventListener('input', updateFlightSearchDataLayer);
+}
+
 // Close dropdowns when clicking outside
 function setupClickOutside() {
   document.addEventListener('click', (e) => {
@@ -368,6 +408,8 @@ export default async function decorate(block) {
   
   // Setup click outside handler
   setupClickOutside();
+  // Update datalayer when user changes From/To dropdowns, date, or option checkboxes
+  attachFlightSearchDataLayerUpdates(block);
   
   if (dateParam) {
     const dateInput = document.getElementById('flight-date');
