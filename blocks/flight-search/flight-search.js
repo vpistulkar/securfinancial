@@ -405,7 +405,20 @@ export default async function decorate(block) {
   
   const form = createFlightSearchForm(fromParam || DEFAULT_FROM, toParam || DEFAULT_TO);
   block.appendChild(form);
-  
+
+  // Apply button config as data attributes on the Search button (for analytics/webhooks)
+  const searchButton = block.querySelector('.flight-search-button');
+  if (searchButton) {
+    const eventType = config.buttoneventtype ?? config['button-event-type'];
+    if (eventType && String(eventType).trim()) searchButton.dataset.buttonEventType = String(eventType).trim();
+    const webhookUrl = config.buttonwebhookurl ?? config['button-webhook-url'];
+    if (webhookUrl && String(webhookUrl).trim()) searchButton.dataset.buttonWebhookUrl = String(webhookUrl).trim();
+    const formId = config.buttonformid ?? config['button-form-id'];
+    if (formId && String(formId).trim()) searchButton.dataset.buttonFormId = String(formId).trim();
+    const buttonData = config.buttondata ?? config['button-data'];
+    if (buttonData && String(buttonData).trim()) searchButton.dataset.buttonData = String(buttonData).trim();
+  }
+
   // Setup click outside handler
   setupClickOutside();
   // Update datalayer when user changes From/To dropdowns, date, or option checkboxes
