@@ -241,7 +241,8 @@
                 "resourceType": "core/franklin/components/block/v1/block",
                 "template": {
                   "name": "User Registration",
-                  "model": "user-registration"
+                  "model": "user-registration",
+                  "key-value": true
                 }
               }
             }
@@ -256,7 +257,8 @@
                 "resourceType": "core/franklin/components/block/v1/block",
                 "template": {
                   "name": "Sign In",
-                  "model": "sign-in"
+                  "model": "sign-in",
+                  "key-value": true
                 }
               }
             }
