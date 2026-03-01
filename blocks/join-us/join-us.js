@@ -6,6 +6,7 @@
  */
 
 import { readBlockConfig } from "../../scripts/aem.js";
+import { dispatchCustomEvent } from "../../scripts/custom-events.js";
 
 function applyButtonConfigToSubmitButton(block, config) {
   const submitButton = block.querySelector("form button[type='submit']");
@@ -148,9 +149,7 @@ export default async function decorate(block) {
         showSuccessPopup();
         const submitButton = form.querySelector("button[type='submit']");
         const authoredEventType = submitButton?.dataset?.buttonEventType?.trim();
-        if (authoredEventType) {
-          document.dispatchEvent(new CustomEvent(authoredEventType, { bubbles: true }));
-        }
+        dispatchCustomEvent(authoredEventType);
       });
     }
   }, 100);

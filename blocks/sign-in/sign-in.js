@@ -1,5 +1,6 @@
 import { isAuthorEnvironment } from "../../scripts/scripts.js";
 import { readBlockConfig } from "../../scripts/aem.js";
+import { dispatchCustomEvent } from "../../scripts/custom-events.js";
 
 // Adobe Profile API Configuration
 const PROFILE_API_CONFIG = {
@@ -323,9 +324,7 @@ function attachSignInHandler(block) {
       // If button has an authored event type, fire it (for Launch, same pattern as flight-search)
       const submitBtn = form.querySelector("button[type='submit']");
       const authoredEventType = submitBtn?.dataset?.buttonEventType?.trim();
-      if (authoredEventType) {
-        document.dispatchEvent(new CustomEvent(authoredEventType, { bubbles: true }));
-      }
+      dispatchCustomEvent(authoredEventType);
 
       // Show success message
       showSuccessMessage(form, "Sign-in successful! Redirecting...");

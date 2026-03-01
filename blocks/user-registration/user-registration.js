@@ -1,4 +1,5 @@
 import { readBlockConfig } from "../../scripts/aem.js";
+import { dispatchCustomEvent } from "../../scripts/custom-events.js";
 
 function applyButtonConfigToSubmitButton(block, config) {
   const submitButton = block.querySelector("form button[type='submit']");
@@ -216,9 +217,7 @@ function attachFormSubmitHandler(block) {
       // If button has an authored event type, fire it (for Launch, same pattern as flight-search)
       const submitButton = form.querySelector("button[type='submit']");
       const authoredEventType = submitButton?.dataset?.buttonEventType?.trim();
-      if (authoredEventType) {
-        document.dispatchEvent(new CustomEvent(authoredEventType, { bubbles: true }));
-      }
+      dispatchCustomEvent(authoredEventType);
 
       // Show success message briefly before redirect
       showSuccessMessage(

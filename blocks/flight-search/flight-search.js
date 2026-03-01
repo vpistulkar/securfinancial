@@ -1,5 +1,6 @@
 // Flight Search Block
 import { getMetadata, readBlockConfig } from '../../scripts/aem.js';
+import { dispatchCustomEvent } from '../../scripts/custom-events.js';
 import { isAuthorEnvironment } from '../../scripts/scripts.js';
 import { getPathDetails } from '../../scripts/utils.js';
 
@@ -190,7 +191,7 @@ function fireButtonCustomEventIfConfigured(submitter) {
   if (typeof window.updateDataLayer === 'function') {
     updateFlightSearchDataLayer();
   }
-  document.dispatchEvent(new CustomEvent(eventType, { bubbles: true }));
+  dispatchCustomEvent(eventType);
 }
 
 // Create search form

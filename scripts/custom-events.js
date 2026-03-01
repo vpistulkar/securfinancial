@@ -1,10 +1,16 @@
 // ==========================================
-// Custom Events – page-view only (for Launch)
-// Fires "page-view" when dataLayer is ready so Launch can trigger rules.
+// Custom Events for Launch
+// Fires "page-view" when dataLayer is ready; dispatchCustomEvent(eventName) used by blocks (registration, sign-in, join-us, flight-search).
 // ==========================================
 
-function dispatchCustomEvent(eventName) {
-  document.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
+export function dispatchCustomEvent(eventName) {
+  const name = eventName && String(eventName).trim();
+  if (!name) return;
+  const dataLayerSnapshot = typeof window.dataLayer !== 'undefined'
+    ? JSON.parse(JSON.stringify(window.dataLayer))
+    : null;
+  console.debug('[Launch custom event] Firing:', name, '| dataLayer at fire time:', dataLayerSnapshot);
+  document.dispatchEvent(new CustomEvent(name, { bubbles: true }));
 }
 
 /**
