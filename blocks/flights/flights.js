@@ -2,7 +2,7 @@
 import { isAuthorEnvironment } from '../../scripts/scripts.js';
 
 const AUTHOR_GRAPHQL_BASE = 'https://author-p159983-e1710854.adobeaemcloud.com/graphql/execute.json/wknd-fly/flight-details-list';
-const PUBLISH_GRAPHQL_BASE = 'https://275323-918sangriatortoise.adobeioruntime.net/api/v1/web/dx-excshell-1/luma-zoltar?environment=p159983-e1710854&endpoint=flight-details-list';
+const PUBLISH_GRAPHQL_BASE = 'https://275323-918sangriatortoise.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-details-list';
 
 // Sample airport data (shared with flight-search)
 const AIRPORTS = [
@@ -175,16 +175,17 @@ async function fetchFlightsFromGraphQL(from, to, config) {
   try {
     const url = isAuthor
       ? `${AUTHOR_GRAPHQL_BASE};from=${encodeURIComponent(fromCode)};to=${encodeURIComponent(toCode)};ts=${Date.now()}`
-      : `${PUBLISH_GRAPHQL_BASE}&from=${encodeURIComponent(fromCode)}&to=${encodeURIComponent(toCode)}`;
+      : `${PUBLISH_GRAPHQL_BASE}?environment=p159983-e1710854&endpoint=flight-details-list&from=${encodeURIComponent(fromCode)}&to=${encodeURIComponent(toCode)}&time=${Date.now()}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
     if (!response.ok) return [];
     const payload = await response.json();
+    if (payload?.errors?.length) return [];
     const items =
-      payload?.data?.flight_details_List?.items ||
       payload?.data?.flightDetailsList?.items ||
+      payload?.data?.flight_details_List?.items ||
       payload?.data?.flightDetails_List?.items ||
       [];
     return items.map((it) => mapGraphQLItemToFlight(it, isAuthor));
