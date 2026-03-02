@@ -318,16 +318,17 @@ function attachSignInHandler(block) {
 
       // Update dataLayer before firing custom event (same pattern as flight-search and user-registration)
       if (typeof window.updateDataLayer === "function") {
-        window.updateDataLayer({
-          personalEmail: { address: enteredEmail },
-          _demosystem4: {
+        const updates = { personalEmail: { address: enteredEmail } };
+        if (enteredEmail && String(enteredEmail).trim()) {
+          updates._demosystem4 = {
             identification: {
               core: {
-                email: enteredEmail,
+                email: String(enteredEmail).trim(),
               },
             },
-          },
-        });
+          };
+        }
+        window.updateDataLayer(updates);
       }
 
       // If button has an authored event type, fire it (for Launch, same pattern as flight-search)

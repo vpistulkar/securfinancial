@@ -55,10 +55,18 @@ function getEcidFromSession() {
 function applyEcidToDataLayer() {
   if (!_dataLayer || !_dataLayer._demosystem4) return;
   const ecid = getEcidFromSession();
-  if (!ecid) return;
   if (!_dataLayer._demosystem4.identification) _dataLayer._demosystem4.identification = {};
-  if (!_dataLayer._demosystem4.identification.core) _dataLayer._demosystem4.identification.core = {};
-  _dataLayer._demosystem4.identification.core.ecid = ecid;
+  const core = _dataLayer._demosystem4.identification.core;
+  if (!core) {
+    _dataLayer._demosystem4.identification.core = { ecid: '', email: null, loyaltyId: '' };
+  }
+  _dataLayer._demosystem4.identification.core.ecid = ecid || _dataLayer._demosystem4.identification.core.ecid || '';
+}
+
+function normalizeDemosystem4Email() {
+  if (!_dataLayer?._demosystem4?.identification?.core) return;
+  const core = _dataLayer._demosystem4.identification.core;
+  if (core.email === '') core.email = null;
 }
 
 function dispatchDataLayerEvent(eventType = 'initialized') {
@@ -225,6 +233,7 @@ export function buildCustomDataLayer() {
 
     if (savedDataLayer && isDataValid) {
       _dataLayer = JSON.parse(savedDataLayer);
+      normalizeDemosystem4Email();
     } else {
       _dataLayer = getInitialDataLayerFromDataElements();
     }
@@ -290,6 +299,7 @@ window.updateDataLayer = function (updates, merge = true) {
   } else {
     _dataLayer = { ..._dataLayer, ...updates };
   }
+  normalizeDemosystem4Email();
   try {
     const now = Date.now().toString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(_dataLayer));
