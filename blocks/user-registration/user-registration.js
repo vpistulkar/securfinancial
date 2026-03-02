@@ -229,8 +229,10 @@ function attachFormSubmitHandler(block) {
         JSON.stringify(registrationData)
       );
 
-      // Luma-style: dispatch Custom Event "registration" (Launch rule uses Custom Event type "registration" → Send Event)
-      document.dispatchEvent(new CustomEvent("registration", { bubbles: true }));
+      // Trigger Launch Registration rule (Direct Call identifier "registration")
+      if (typeof window._satellite !== "undefined" && typeof window._satellite.track === "function") {
+        window._satellite.track("registration");
+      }
 
       // Show success message briefly before redirect
       showSuccessMessage(
