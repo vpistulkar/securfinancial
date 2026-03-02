@@ -208,11 +208,22 @@ function attachFormSubmitHandler(block) {
         })
       );
 
+      // So Launch "Profile - Email from Storage" and Identity Map resolve when Registration rule runs
+      if (registrationData.email) {
+        try {
+          localStorage.setItem("com.adobe.reactor.dataElements.Profile - Email", registrationData.email);
+          if (typeof window._satellite !== "undefined" && typeof window._satellite.setVar === "function") {
+            window._satellite.setVar("Profile - Email", registrationData.email);
+          }
+        } catch (e) {
+          // ignore storage/setVar errors
+        }
+      }
+
       localStorage.setItem(
         "luma_registered_user",
         JSON.stringify(registrationData)
       );
-
 
       // If button has an authored event type, fire it (for Launch, same pattern as flight-search)
       const submitButton = form.querySelector("button[type='submit']");
@@ -253,6 +264,7 @@ function updateAllDataLayerFields(formData) {
         lastName: formData.lastName || "",
       },
       wkndFlyMember: formData.wkndFlyMember || "",
+      isMember: isMember === "y",
     },
     consents: {
       marketing: {

@@ -10,7 +10,10 @@ export function dispatchCustomEvent(eventName) {
     ? JSON.parse(JSON.stringify(window.dataLayer))
     : null;
   console.debug('[Launch custom event] Firing:', name, '| dataLayer at fire time:', dataLayerSnapshot);
-  document.dispatchEvent(new CustomEvent(name, { bubbles: true }));
+  document.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: { dataLayer: dataLayerSnapshot } }));
+  if (typeof window._satellite !== 'undefined' && typeof window._satellite.track === 'function') {
+    window._satellite.track(name);
+  }
 }
 
 /**
