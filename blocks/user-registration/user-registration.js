@@ -1,6 +1,45 @@
 import { readBlockConfig } from "../../scripts/aem.js";
 import { dispatchCustomEvent } from "../../scripts/custom-events.js";
 
+/**
+ * Sends the registration event to AEP via Alloy (Web SDK) so the "interact" request fires
+ * even if the Launch rule's Send Event action does not run (e.g. prior action fails, XDM empty).
+ * Matches the XDM - Registration data element shape used in the Launch rule.
+ */
+function sendRegistrationEventToAlloy(registrationData) {
+  if (typeof window.alloy !== "function" || !registrationData?.email) return;
+  try {
+    const email = String(registrationData.email).trim();
+    const identityMap = {
+      email: [{ id: email, primary: true }],
+    };
+    const dl = typeof window.dataLayer !== "undefined" ? window.dataLayer : {};
+    const projectId = dl.project?.id || "wknd-fly";
+    const ecid = dl._demosystem4?.identification?.core?.ecid || "";
+    const loyaltyId = dl._demosystem4?.identification?.core?.loyaltyId || "";
+    const xdm = {
+      identityMap,
+      _demosystem4: {
+        identification: {
+          core: {
+            ecid,
+            email: email || null,
+            loyaltyId,
+          },
+        },
+        demoEnvironment: { brandName: projectId },
+        interactionDetails: { core: { channel: "web" } },
+      },
+    };
+    window.alloy("sendEvent", {
+      xdm,
+      type: "account.registration",
+    });
+  } catch (e) {
+    console.warn("[Registration] Alloy sendEvent failed:", e?.message || e);
+  }
+}
+
 function applyButtonConfigToSubmitButton(block, config) {
   const submitButton = block.querySelector("form button[type='submit']");
   if (!submitButton) return;
@@ -138,10 +177,15 @@ function attachFormSubmitHandler(block) {
     return;
   }
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault(); // Prevent default form submission
+  // Use capture phase so we run first; stopImmediatePropagation prevents the Adaptive Form
+  // runtime from doing a POST to the page URL (which returns 405 Method Not Allowed).
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
 
-    // Validate required fields
+      // Validate required fields
     const requiredFields = ["firstName", "lastName", "email"];
     const formData = {};
     let isValid = true;
@@ -225,10 +269,16 @@ function attachFormSubmitHandler(block) {
         JSON.stringify(registrationData)
       );
 
-      // If button has an authored event type, fire it (for Launch, same pattern as flight-search)
+      // Send registration to AEP via Alloy so the "interact" request fires (Launch rule may not run Send Event)
+      sendRegistrationEventToAlloy(registrationData);
+
+      // Luma-style: always dispatch Custom Event "registration" so a Launch rule with Custom Event type "registration" fires
+      document.dispatchEvent(new CustomEvent("registration", { bubbles: true }));
+
+      // If button has an authored event type, also fire it (for Direct Call rules)
       const submitButton = form.querySelector("button[type='submit']");
       const authoredEventType = submitButton?.dataset?.buttonEventType?.trim();
-      dispatchCustomEvent(authoredEventType);
+      if (authoredEventType) dispatchCustomEvent(authoredEventType);
 
       // Show success message briefly before redirect
       showSuccessMessage(
@@ -244,7 +294,9 @@ function attachFormSubmitHandler(block) {
       console.error("Registration error:", error);
       showErrorMessage(form, "Registration failed. Please try again.");
     }
-  });
+  },
+    true
+  );
 }
 
 /**
