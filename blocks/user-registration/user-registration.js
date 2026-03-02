@@ -1,44 +1,4 @@
 import { readBlockConfig } from "../../scripts/aem.js";
-import { dispatchCustomEvent } from "../../scripts/custom-events.js";
-
-/**
- * Sends the registration event to AEP via Alloy (Web SDK) so the "interact" request fires
- * even if the Launch rule's Send Event action does not run (e.g. prior action fails, XDM empty).
- * Matches the XDM - Registration data element shape used in the Launch rule.
- */
-function sendRegistrationEventToAlloy(registrationData) {
-  if (typeof window.alloy !== "function" || !registrationData?.email) return;
-  try {
-    const email = String(registrationData.email).trim();
-    const identityMap = {
-      email: [{ id: email, primary: true }],
-    };
-    const dl = typeof window.dataLayer !== "undefined" ? window.dataLayer : {};
-    const projectId = dl.project?.id || "wknd-fly";
-    const ecid = dl._demosystem4?.identification?.core?.ecid || "";
-    const loyaltyId = dl._demosystem4?.identification?.core?.loyaltyId || "";
-    const xdm = {
-      identityMap,
-      _demosystem4: {
-        identification: {
-          core: {
-            ecid,
-            email: email || null,
-            loyaltyId,
-          },
-        },
-        demoEnvironment: { brandName: projectId },
-        interactionDetails: { core: { channel: "web" } },
-      },
-    };
-    window.alloy("sendEvent", {
-      xdm,
-      type: "account.registration",
-    });
-  } catch (e) {
-    console.warn("[Registration] Alloy sendEvent failed:", e?.message || e);
-  }
-}
 
 function applyButtonConfigToSubmitButton(block, config) {
   const submitButton = block.querySelector("form button[type='submit']");
@@ -269,16 +229,8 @@ function attachFormSubmitHandler(block) {
         JSON.stringify(registrationData)
       );
 
-      // Send registration to AEP via Alloy so the "interact" request fires (Launch rule may not run Send Event)
-      sendRegistrationEventToAlloy(registrationData);
-
-      // Luma-style: always dispatch Custom Event "registration" so a Launch rule with Custom Event type "registration" fires
+      // Luma-style: dispatch Custom Event "registration" (Launch rule uses Custom Event type "registration" → Send Event)
       document.dispatchEvent(new CustomEvent("registration", { bubbles: true }));
-
-      // If button has an authored event type, also fire it (for Direct Call rules)
-      const submitButton = form.querySelector("button[type='submit']");
-      const authoredEventType = submitButton?.dataset?.buttonEventType?.trim();
-      if (authoredEventType) dispatchCustomEvent(authoredEventType);
 
       // Show success message briefly before redirect
       showSuccessMessage(
