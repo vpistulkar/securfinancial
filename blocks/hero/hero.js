@@ -62,15 +62,16 @@ export default function decorate(block) {
     block.classList.add('hero--fullwidth');
   }
 
-  const heightVal = (config.height ?? ue('height'))?.toString?.()?.trim();
+  let heightVal = (config.height ?? ue('height'))?.toString?.()?.trim();
   if (heightVal) {
+    if (/^\d+$/.test(heightVal)) heightVal = `${heightVal}px`;
     block.style.height = heightVal;
   }
   const textWrapper = block.querySelector(':scope > div:nth-child(2)') || block;
-  const textColor = (config.color ?? ue('color') ?? ue('textColor'))?.toString?.()?.trim();
-  if (textWrapper && textColor) {
-    textWrapper.style.color = textColor;
+  const textColor = (config.color ?? config['text-color'] ?? ue('color') ?? ue('textColor'))?.toString?.()?.trim();
+  if (textColor) {
     block.classList.add('hero--custom-text-color');
+    block.style.setProperty('--hero-text-color', textColor);
   }
 
   if (config.link && String(config.link).trim()) {

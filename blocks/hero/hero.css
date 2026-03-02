@@ -54,6 +54,18 @@
   display: none;
 }
 
+/* UE Text Color – when set in editor, override all hero text */
+.hero.hero--custom-text-color h1,
+.hero.hero--custom-text-color h2,
+.hero.hero--custom-text-color h3,
+.hero.hero--custom-text-color h4,
+.hero.hero--custom-text-color h5,
+.hero.hero--custom-text-color h6,
+.hero.hero--custom-text-color p,
+.hero.hero--custom-text-color .button-container a {
+  color: var(--hero-text-color);
+}
+
 /* --------------------------
    Hero Background Image
 --------------------------- */
