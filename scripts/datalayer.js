@@ -58,7 +58,7 @@ function applyEcidToDataLayer() {
   if (!_dataLayer._demosystem4.identification) _dataLayer._demosystem4.identification = {};
   const core = _dataLayer._demosystem4.identification.core;
   if (!core) {
-    _dataLayer._demosystem4.identification.core = { ecid: '', email: null, loyaltyId: '' };
+    _dataLayer._demosystem4.identification.core = { ecid: '', email: null, loyaltyId: '', isMember: 'n' };
   }
   _dataLayer._demosystem4.identification.core.ecid = ecid || _dataLayer._demosystem4.identification.core.ecid || '';
 }
@@ -195,6 +195,7 @@ function getInitialDataLayerFromDataElements() {
           ecid: '',
           email: null,
           loyaltyId: '',
+          isMember: 'n',
         },
       },
       demoEnvironment: {

@@ -243,6 +243,7 @@ function attachFormSubmitHandler(block) {
 function updateAllDataLayerFields(formData) {
   if (!window.updateDataLayer) return;
 
+  const isMember = (formData.wkndFlyMember || "").toLowerCase() === "member" ? "y" : "n";
   const updateObj = {
     personalEmail: { address: formData.email || "" },
     mobilePhone: { number: formData.phone || "" },
@@ -257,6 +258,14 @@ function updateAllDataLayerFields(formData) {
       marketing: {
         email: {
           val: formData.emailComm === "true" || formData.emailComm === true,
+        },
+      },
+    },
+    _demosystem4: {
+      identification: {
+        core: {
+          email: formData.email || null,
+          isMember,
         },
       },
     },
