@@ -50,22 +50,27 @@ export default function decorate(block) {
     if (index >= 7) row.style.display = 'none';
   });
 
-  /* Banner-like: alignment, vertical alignment, full width (keys may be hyphenated from readBlockConfig) */
-  const alignment = (config.alignment || 'center').toLowerCase();
-  const verticalAlignment = (config.verticalalignment || config['vertical-alignment'] || 'middle').toLowerCase();
+  /* Banner-like: alignment, vertical alignment, full width – from config or UE (data-aue-prop) */
+  const ue = (name) => block.querySelector(`[data-aue-prop="${name}"]`)?.textContent?.trim();
+  const alignment = (config.alignment ?? ue('alignment') ?? 'center').toString().toLowerCase();
+  const verticalAlignment = (config.verticalalignment ?? config['vertical-alignment'] ?? ue('verticalalignment') ?? 'middle').toString().toLowerCase();
   block.classList.add(`hero--alignment-${alignment}`);
   block.classList.add(`hero--verticalalignment-${verticalAlignment}`);
-  const isFullWidth = config.isfullwidth === 'true' || config.isfullwidth === true || config['full-width'] === 'true';
+  const isFullWidth = config.isfullwidth === 'true' || config.isfullwidth === true || config['full-width'] === 'true'
+    || (ue('isfullwidth') ?? '').toLowerCase() === 'true';
   if (isFullWidth) {
     block.classList.add('hero--fullwidth');
   }
 
-  if (config.height && String(config.height).trim()) {
-    block.style.height = String(config.height).trim();
+  const heightVal = (config.height ?? ue('height'))?.toString?.()?.trim();
+  if (heightVal) {
+    block.style.height = heightVal;
   }
   const textWrapper = block.querySelector(':scope > div:nth-child(2)') || block;
-  if (textWrapper && config.color && String(config.color).trim()) {
-    textWrapper.style.color = String(config.color).trim();
+  const textColor = (config.color ?? ue('color') ?? ue('textColor'))?.toString?.()?.trim();
+  if (textWrapper && textColor) {
+    textWrapper.style.color = textColor;
+    block.classList.add('hero--custom-text-color');
   }
 
   if (config.link && String(config.link).trim()) {
