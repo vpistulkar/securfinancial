@@ -30,8 +30,6 @@ import {
 
 // Import dataLayer management (available immediately)
 import './datalayer.js';
-// Custom events for Launch (e.g. page-view)
-import './custom-events.js';
 
 function addPreconnect(origin) {
   try {
