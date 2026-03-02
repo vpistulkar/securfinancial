@@ -34,7 +34,7 @@ function firePageViewWhenReady() {
 
 export async function initializeCustomEvents() {
   try {
-    setTimeout(firePageViewWhenReady, 5000);
+    firePageViewWhenReady();
   } catch (error) {
     console.error("Error initializing custom events:", error);
   }
