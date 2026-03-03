@@ -424,6 +424,7 @@ function displayFlightResults(flights, from, to, date, config = {}) {
     const timesRow = createElement('div', 'flight-times-row');
     timesRow.innerHTML = `
       <span class="flight-time-value">${flight.departureTime}</span>
+      <span class="flight-time-separator" aria-hidden="true">—</span>
       <span class="flight-time-value">${flight.arrivalTime}</span>
     `;
     
@@ -966,6 +967,7 @@ function processFlightItem(row) {
     if (timesRowEl) {
       timesRowEl.innerHTML = `
         <span class="flight-time-value">${departureTime || ''}</span>
+        <span class="flight-time-separator" aria-hidden="true">—</span>
         <span class="flight-time-value">${arrivalTime || ''}</span>
       `;
     }
