@@ -73,4 +73,32 @@ function renderConfirmation(block, data) {
 export default async function decorate(block) {
   const data = getBookingData();
   renderConfirmation(block, data);
+  if (data && typeof window.updateDataLayer === 'function') {
+    const firstFlight = data.flights && data.flights[0];
+    const formData = data.formData || {};
+    const updates = {
+      bookingReference: data.bookingReference,
+      ticketNumber: data.electronicTicketNumber,
+      itineraryNumber: data.itineraryNumber,
+      cart: { ...(typeof window.getDataLayerProperty === 'function' ? window.getDataLayerProperty('cart') : {}), total: data.total },
+      personalEmail: { address: formData.email || '' },
+      _demosystem4: {
+        identification: {
+          core: {
+            loyaltyId: formData.frequentFlyerId || (typeof window.getDataLayerProperty === 'function' ? (window.getDataLayerProperty('_demosystem4.identification.core')?.loyaltyId) : undefined) || '',
+          },
+        },
+      },
+    };
+    if (firstFlight) {
+      updates.from = firstFlight.from || '';
+      updates.to = firstFlight.to || '';
+      updates.flightNumber = firstFlight.id || '';
+      updates.class = firstFlight.class || '';
+      updates.flightLength = firstFlight.flightLength || '';
+      updates.date = firstFlight.date || '';
+    }
+    window.updateDataLayer(updates, true);
+    document.dispatchEvent(new CustomEvent('flight.booking', { bubbles: true }));
+  }
 }
