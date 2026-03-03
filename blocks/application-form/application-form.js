@@ -1,12 +1,158 @@
 /**
  * Application Form block – credit card (or similar) application.
- * Sections: Personal Information, Address, Employment & Income, Disclosures, Submit.
- * Similar to DSN credit-card-application style (e.g. securfinancial2).
+ * Built like sign-in/join-us: adaptive form definition rendered by the form module,
+ * with wizard layout (Back / Next) so the form is created step-by-step per site style.
+ * Steps: Personal Information → Address → Employment & Income → Disclosures → Submit.
  */
 
-function collectApplicationFormData(block) {
+import { readBlockConfig, loadCSS } from '../../scripts/aem.js';
+
+function applyButtonConfigToSubmitButton(block, config) {
+  const submitButton = block.querySelector("form button[type='submit']");
+  if (!submitButton) return;
+  const eventType = config.buttoneventtype ?? config['button-event-type'];
+  if (eventType && String(eventType).trim()) submitButton.dataset.buttonEventType = String(eventType).trim();
+  const webhookUrl = config.buttonwebhookurl ?? config['button-webhook-url'];
+  if (webhookUrl && String(webhookUrl).trim()) submitButton.dataset.buttonWebhookUrl = String(webhookUrl).trim();
+  const formId = config.buttonformid ?? config['button-form-id'];
+  if (formId && String(formId).trim()) submitButton.dataset.buttonFormId = String(formId).trim();
+  const buttonData = config.buttondata ?? config['button-data'];
+  if (buttonData && String(buttonData).trim()) submitButton.dataset.buttonData = String(buttonData).trim();
+}
+
+function buildApplicationFormDef() {
+  return {
+    id: 'application-form',
+    fieldType: 'form',
+    appliedCssClassNames: 'application-form-form application-form-wizard',
+    items: [
+      {
+        id: 'heading-application-form',
+        fieldType: 'heading',
+        label: { value: 'Credit Card Application' },
+        appliedCssClassNames: 'col-12 application-form-heading',
+      },
+      {
+        id: 'description-application-form',
+        fieldType: 'plain-text',
+        value: 'Complete the form below to apply. Fields marked with * are required.',
+        appliedCssClassNames: 'col-12 application-form-subtitle',
+      },
+      {
+        id: 'panel-wizard',
+        name: 'wizard',
+        fieldType: 'panel',
+        ':type': 'fd/panel/wizard',
+        items: [
+          {
+            id: 'step-personal',
+            name: 'personal',
+            fieldType: 'panel',
+            label: { value: 'Personal Information' },
+            items: [
+              { id: 'firstName', name: 'firstName', fieldType: 'text-input', label: { value: 'First Name *' }, required: true, properties: { colspan: 12 } },
+              { id: 'middleName', name: 'middleName', fieldType: 'text-input', label: { value: 'Middle Name (optional)' }, properties: { colspan: 12 } },
+              { id: 'lastName', name: 'lastName', fieldType: 'text-input', label: { value: 'Last Name *' }, required: true, properties: { colspan: 12 } },
+              { id: 'dateOfBirth', name: 'dateOfBirth', fieldType: 'text-input', label: { value: 'Date of Birth *' }, placeholder: 'MM/DD/YYYY', required: true, properties: { colspan: 12 } },
+              { id: 'email', name: 'email', fieldType: 'email', label: { value: 'Email *' }, required: true, properties: { colspan: 12 } },
+              { id: 'phone', name: 'phone', fieldType: 'text-input', label: { value: 'Phone Number *' }, required: true, properties: { colspan: 12 } },
+            ],
+          },
+          {
+            id: 'step-address',
+            name: 'address',
+            fieldType: 'panel',
+            label: { value: 'Address' },
+            items: [
+              { id: 'streetAddress', name: 'streetAddress', fieldType: 'text-input', label: { value: 'Street Address *' }, required: true, properties: { colspan: 12 } },
+              { id: 'addressLine2', name: 'addressLine2', fieldType: 'text-input', label: { value: 'Apt / Suite (optional)' }, properties: { colspan: 12 } },
+              { id: 'city', name: 'city', fieldType: 'text-input', label: { value: 'City *' }, required: true, properties: { colspan: 12 } },
+              { id: 'state', name: 'state', fieldType: 'text-input', label: { value: 'State / Province *' }, required: true, properties: { colspan: 12 } },
+              { id: 'zipCode', name: 'zipCode', fieldType: 'text-input', label: { value: 'ZIP / Postal Code *' }, required: true, properties: { colspan: 12 } },
+              {
+                id: 'country',
+                name: 'country',
+                fieldType: 'drop-down',
+                label: { value: 'Country *' },
+                required: true,
+                enum: ['', 'US', 'CA', 'MX', 'GB', 'OTHER'],
+                enumNames: ['Select', 'United States', 'Canada', 'Mexico', 'United Kingdom', 'Other'],
+                properties: { colspan: 12 },
+              },
+            ],
+          },
+          {
+            id: 'step-employment',
+            name: 'employment',
+            fieldType: 'panel',
+            label: { value: 'Employment & Income' },
+            items: [
+              {
+                id: 'employmentStatus',
+                name: 'employmentStatus',
+                fieldType: 'drop-down',
+                label: { value: 'Employment Status *' },
+                required: true,
+                enum: ['', 'employed', 'self-employed', 'retired', 'student', 'other'],
+                enumNames: ['Select', 'Employed', 'Self-Employed', 'Retired', 'Student', 'Other'],
+                properties: { colspan: 12 },
+              },
+              { id: 'employerName', name: 'employerName', fieldType: 'text-input', label: { value: 'Employer Name' }, properties: { colspan: 12 } },
+              { id: 'jobTitle', name: 'jobTitle', fieldType: 'text-input', label: { value: 'Job Title / Occupation' }, properties: { colspan: 12 } },
+              { id: 'annualIncome', name: 'annualIncome', fieldType: 'text-input', label: { value: 'Annual Income *' }, placeholder: 'e.g. 75000', required: true, properties: { colspan: 12 } },
+              { id: 'otherIncome', name: 'otherIncome', fieldType: 'text-input', label: { value: 'Other Monthly Income (optional)' }, placeholder: 'e.g. 500', properties: { colspan: 12 } },
+            ],
+          },
+          {
+            id: 'step-disclosures',
+            name: 'disclosures',
+            fieldType: 'panel',
+            label: { value: 'Disclosures' },
+            items: [
+              {
+                id: 'agreeTerms',
+                name: 'agreeTerms',
+                fieldType: 'checkbox',
+                label: { value: 'I have read and agree to the Terms and Conditions and Privacy Policy *' },
+                enum: ['true'],
+                required: true,
+                properties: { colspan: 12 },
+              },
+              {
+                id: 'agreeCreditCheck',
+                name: 'agreeCreditCheck',
+                fieldType: 'checkbox',
+                label: { value: 'I authorize a credit check and verification of the information I have provided' },
+                enum: ['true'],
+                properties: { colspan: 12 },
+              },
+            ],
+          },
+          {
+            id: 'step-submit',
+            name: 'submit',
+            fieldType: 'panel',
+            label: { value: 'Submit' },
+            items: [
+              {
+                id: 'submit-application-btn',
+                name: 'submitApplication',
+                fieldType: 'button',
+                buttonType: 'submit',
+                label: { value: 'Submit Application' },
+                appliedCssClassNames: 'application-form-submit-btn col-12',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function collectApplicationFormData(form) {
   const data = {};
-  block.querySelectorAll('input, select, textarea').forEach((el) => {
+  form.querySelectorAll('input, select, textarea').forEach((el) => {
     const name = el.getAttribute('name');
     if (!name) return;
     if (el.type === 'checkbox') {
@@ -18,77 +164,10 @@ function collectApplicationFormData(block) {
   return data;
 }
 
-function renderPersonalInfoSection(container) {
-  const section = document.createElement('div');
-  section.className = 'application-form-section';
-  section.innerHTML = `
-    <h3 class="application-form-section-title">Personal Information</h3>
-    <p class="application-form-description">Please enter your legal name and contact details as they appear on your identification.</p>
-    <div class="application-form-fields">
-      <label>First Name <span class="application-form-required">*</span><input type="text" name="firstName" required></label>
-      <label>Middle Name (optional)<input type="text" name="middleName"></label>
-      <label>Last Name <span class="application-form-required">*</span><input type="text" name="lastName" required></label>
-      <label>Date of Birth <span class="application-form-required">*</span><input type="text" name="dateOfBirth" placeholder="MM/DD/YYYY" required></label>
-      <label>Email <span class="application-form-required">*</span><input type="email" name="email" required></label>
-      <label>Phone Number <span class="application-form-required">*</span><input type="tel" name="phone" inputmode="numeric" maxlength="20" placeholder="Digits only" required></label>
-    </div>
-  `;
-  container.appendChild(section);
-}
-
-function renderAddressSection(container) {
-  const section = document.createElement('div');
-  section.className = 'application-form-section';
-  section.innerHTML = `
-    <h3 class="application-form-section-title">Address</h3>
-    <p class="application-form-description">Your current residential address.</p>
-    <div class="application-form-fields">
-      <label>Street Address <span class="application-form-required">*</span><input type="text" name="streetAddress" required></label>
-      <label>Apt / Suite (optional)<input type="text" name="addressLine2"></label>
-      <label>City <span class="application-form-required">*</span><input type="text" name="city" required></label>
-      <label>State / Province <span class="application-form-required">*</span><input type="text" name="state" required></label>
-      <label>ZIP / Postal Code <span class="application-form-required">*</span><input type="text" name="zipCode" required></label>
-      <label>Country <span class="application-form-required">*</span><select name="country" required><option value="">Select</option><option value="US">United States</option><option value="CA">Canada</option><option value="MX">Mexico</option><option value="GB">United Kingdom</option><option value="OTHER">Other</option></select></label>
-    </div>
-  `;
-  container.appendChild(section);
-}
-
-function renderEmploymentSection(container) {
-  const section = document.createElement('div');
-  section.className = 'application-form-section';
-  section.innerHTML = `
-    <h3 class="application-form-section-title">Employment & Income</h3>
-    <p class="application-form-description">Employment and income information helps us evaluate your application.</p>
-    <div class="application-form-fields">
-      <label>Employment Status <span class="application-form-required">*</span><select name="employmentStatus" required><option value="">Select</option><option value="employed">Employed</option><option value="self-employed">Self-Employed</option><option value="retired">Retired</option><option value="student">Student</option><option value="other">Other</option></select></label>
-      <label>Employer Name<input type="text" name="employerName"></label>
-      <label>Job Title / Occupation<input type="text" name="jobTitle"></label>
-      <label>Annual Income <span class="application-form-required">*</span><input type="text" name="annualIncome" inputmode="numeric" placeholder="e.g. 75000" required></label>
-      <label>Other Monthly Income (optional)<input type="text" name="otherIncome" inputmode="numeric" placeholder="e.g. 500"></label>
-    </div>
-  `;
-  container.appendChild(section);
-}
-
-function renderDisclosuresSection(container) {
-  const section = document.createElement('div');
-  section.className = 'application-form-section';
-  section.innerHTML = `
-    <h3 class="application-form-section-title">Disclosures</h3>
-    <p class="application-form-description">By submitting this application, you agree to the terms and conditions and authorize us to verify the information provided.</p>
-    <div class="application-form-fields">
-      <label class="application-form-checkbox"><input type="checkbox" name="agreeTerms" required> I have read and agree to the <a href="#">Terms and Conditions</a> and <a href="#">Privacy Policy</a> <span class="application-form-required">*</span></label>
-      <label class="application-form-checkbox"><input type="checkbox" name="agreeCreditCheck"> I authorize a credit check and verification of the information I have provided</label>
-    </div>
-  `;
-  container.appendChild(section);
-}
-
-function restrictNumericFields(block) {
+function restrictNumericFields(form) {
   const numericNames = ['phone', 'annualIncome', 'otherIncome'];
   numericNames.forEach((name) => {
-    const el = block.querySelector(`[name="${name}"]`);
+    const el = form.querySelector(`[name="${name}"]`);
     if (!el) return;
     el.addEventListener('input', () => {
       const digits = el.value.replace(/\D/g, '');
@@ -97,8 +176,8 @@ function restrictNumericFields(block) {
   });
 }
 
-function formatDateOfBirthInput(block) {
-  const el = block.querySelector('[name="dateOfBirth"]');
+function formatDateOfBirthInput(form) {
+  const el = form.querySelector('[name="dateOfBirth"]');
   if (!el) return;
   el.addEventListener('input', () => {
     const digits = el.value.replace(/\D/g, '').slice(0, 8);
@@ -110,51 +189,62 @@ function formatDateOfBirthInput(block) {
   });
 }
 
-export default function decorate(block) {
-  block.classList.add('application-form-block');
-  const wrapper = document.createElement('div');
-  wrapper.className = 'application-form-wrapper';
+function attachApplicationFormSubmitHandler(block) {
+  const form = block.querySelector('form');
+  if (!form) return;
 
-  const header = document.createElement('div');
-  header.className = 'application-form-header';
-  header.innerHTML = '<h1 class="application-form-title">Credit Card Application</h1><p class="application-form-subtitle">Complete the form below to apply. Fields marked with * are required.</p>';
-  wrapper.appendChild(header);
-
-  const main = document.createElement('div');
-  main.className = 'application-form-main';
-  renderPersonalInfoSection(main);
-  renderAddressSection(main);
-  renderEmploymentSection(main);
-  renderDisclosuresSection(main);
-
-  const submitSection = document.createElement('div');
-  submitSection.className = 'application-form-section application-form-submit-section';
-  submitSection.innerHTML = `
-    <button type="submit" class="application-form-submit-btn">Submit Application</button>
-    <p class="application-form-note">You will receive a confirmation once your application has been received.</p>
-  `;
-  main.appendChild(submitSection);
-
-  const form = document.createElement('form');
-  form.className = 'application-form-form';
-  form.appendChild(main);
+  const submitSection = form.querySelector('#step-submit')?.closest('fieldset') || form.querySelector('.panel-wrapper:last-of-type');
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const data = collectApplicationFormData(block);
+    e.stopPropagation();
+    const data = collectApplicationFormData(form);
     // eslint-disable-next-line no-console
     console.log('Application form data:', data);
+
     const msg = block.querySelector('.application-form-success-msg');
     if (msg) msg.remove();
     const success = document.createElement('p');
     success.className = 'application-form-success-msg';
     success.textContent = 'Thank you. Your application has been submitted successfully.';
     success.setAttribute('role', 'status');
-    submitSection.insertBefore(success, submitSection.firstChild);
+    if (submitSection) {
+      submitSection.insertBefore(success, submitSection.firstChild);
+    } else {
+      form.insertBefore(success, form.firstChild);
+    }
   });
+}
 
-  wrapper.appendChild(form);
-  block.appendChild(wrapper);
+export default async function decorate(block) {
+  const config = readBlockConfig(block) || {};
+  [...block.children].forEach((row) => { row.style.display = 'none'; });
 
-  restrictNumericFields(block);
-  formatDateOfBirthInput(block);
+  block.classList.add('application-form-block');
+
+  const codeBasePath = window.hlx?.codeBasePath || '';
+  await loadCSS(`${codeBasePath}/blocks/form/form.css`);
+
+  const formDef = buildApplicationFormDef();
+  const formContainer = document.createElement('div');
+  formContainer.className = 'application-form-wrapper form';
+
+  const pre = document.createElement('pre');
+  const code = document.createElement('code');
+  code.textContent = JSON.stringify(formDef);
+  pre.append(code);
+  formContainer.append(pre);
+  block.append(formContainer);
+
+  const formModule = await import('../form/form.js');
+  await formModule.default(formContainer);
+
+  setTimeout(() => {
+    applyButtonConfigToSubmitButton(block, config);
+    attachApplicationFormSubmitHandler(block);
+    const form = block.querySelector('form');
+    if (form) {
+      restrictNumericFields(form);
+      formatDateOfBirthInput(form);
+    }
+  }, 100);
 }

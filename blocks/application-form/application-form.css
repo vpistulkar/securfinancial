@@ -1,4 +1,4 @@
-/* Application Form block – credit card application (DSN-style) */
+/* Application Form block – credit card application with wizard (Back/Next) like sign-in adaptive form */
 main > .section:has(.application-form-block) > div {
   max-width: 720px;
 }
@@ -10,6 +10,17 @@ main > .section:has(.application-form-block) > div {
   padding: 0 2rem 2rem;
   font-family: var(--body-font-family, system-ui, sans-serif);
   box-sizing: border-box;
+}
+
+.application-form-block .application-form-heading {
+  margin-bottom: 0.5rem;
+}
+
+.application-form-block .application-form-subtitle {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9375rem;
+  color: #555;
+  line-height: 1.5;
 }
 
 .application-form-block .application-form-wrapper {
