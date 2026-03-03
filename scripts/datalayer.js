@@ -138,7 +138,7 @@ function getInitialDataLayerFromDataElements() {
       const y = d.getUTCFullYear();
       const m = String(d.getUTCMonth() + 1).padStart(2, '0');
       const day = String(d.getUTCDate()).padStart(2, '0');
-      return `${y}-${m}-${day}T00:00:00.000Z`;
+      return `${y}-${m}-${day}T00:00:00Z`;
     })(),
     bookingReference: '',
     flightLength: 0,
@@ -373,17 +373,18 @@ window.getDataLayerFlightLength = function (val) {
   return Number.isNaN(n) ? 0 : Math.max(0, Math.floor(n));
 };
 
-// Normalize date to ISO 8601 for dataLayer/XDM (e.g. "2026-03-30T00:00:00.000Z")
+// Normalize date to ISO 8601 for dataLayer/XDM (e.g. "2026-03-10T18:30:00Z" — no milliseconds)
 window.getDataLayerDate = function (val) {
   if (val == null || val === '') return '';
   const s = String(val).trim();
   if (!s) return '';
-  if (s.indexOf('T') !== -1) return s; // already ISO-like
+  const stripMs = (iso) => (typeof iso === 'string' ? iso.replace(/\.\d{3}Z$/i, 'Z') : iso);
+  if (s.indexOf('T') !== -1) return stripMs(s); // already ISO-like
   const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) return `${match[1]}-${match[2]}-${match[3]}T00:00:00.000Z`;
+  if (match) return `${match[1]}-${match[2]}-${match[3]}T00:00:00Z`;
   try {
     const d = new Date(s);
-    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+    return Number.isNaN(d.getTime()) ? '' : stripMs(d.toISOString());
   } catch {
     return '';
   }
