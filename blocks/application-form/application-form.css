@@ -29,7 +29,7 @@ main > .section:has(.application-form-block) > div {
 }
 
 .application-form-block .application-form-subtitle {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1rem 0;
   font-size: 0.9375rem;
   color: #555;
   line-height: 1.5;
@@ -40,8 +40,24 @@ main > .section:has(.application-form-block) > div {
   min-width: 0;
 }
 
-/* Progress dots: inactive = light grey border + white fill, active = teal filled */
-.application-form-block .application-form-wizard .wizard-menu-items {
+/* Place progress dots below title/subtitle: wizard uses display:contents so its
+   children (menu, panels, buttons) flow as form children after heading & subtitle */
+.application-form-block form {
+  display: flex;
+  flex-direction: column;
+}
+
+.application-form-block .application-form-wizard.wizard {
+  display: contents;
+}
+
+.application-form-block .application-form-subtitle {
+  margin-bottom: 1rem;
+}
+
+/* Progress dots: below subtitle; inactive = light grey border + white fill, active = teal filled */
+.application-form-block .application-form-wizard .wizard-menu-items,
+.application-form-block .wizard-menu-items {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,7 +66,8 @@ main > .section:has(.application-form-block) > div {
   margin-bottom: 0.5rem;
 }
 
-.application-form-block .application-form-wizard .wizard-menu-item {
+.application-form-block .application-form-wizard .wizard-menu-item,
+.application-form-block .wizard-menu-item {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -63,11 +80,13 @@ main > .section:has(.application-form-block) > div {
   box-sizing: border-box;
 }
 
-.application-form-block .application-form-wizard .wizard-menu-item::before {
+.application-form-block .application-form-wizard .wizard-menu-item::before,
+.application-form-block .wizard-menu-item::before {
   display: none !important;
 }
 
-.application-form-block .application-form-wizard .wizard-menu-active-item {
+.application-form-block .application-form-wizard .wizard-menu-active-item,
+.application-form-block .wizard-menu-active-item {
   background: var(--application-form-teal);
   border-color: var(--application-form-teal);
 }
@@ -164,13 +183,14 @@ main > .section:has(.application-form-block) > div {
   gap: 1.25rem;
 }
 
-/* Submit button: same teal oval as Next, no full-width bar */
+/* Submit button: same teal oval as Next, right-aligned to match reference */
 .application-form-block .application-form-wizard .submit-wrapper {
-  width: auto !important;
+  width: 100% !important;
   max-width: none;
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
+  margin-left: 0;
 }
 
 .application-form-block .application-form-wizard .submit-wrapper button,
