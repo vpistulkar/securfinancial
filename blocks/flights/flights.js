@@ -143,6 +143,43 @@ function resolveFromAndTo() {
   return { from, to };
 }
 
+/**
+ * Calculates flight length string from departure and arrival time strings.
+ * Supports "HH:mm", "HH:mm:ss", "h:mm a" and ISO date-time; returns e.g. "2h 30m" or "" if unparseable.
+ */
+function calculateFlightLengthFromTimes(departureTime, arrivalTime) {
+  if (!departureTime || !arrivalTime || typeof departureTime !== 'string' || typeof arrivalTime !== 'string') return '';
+  const parseToMinutes = (str) => {
+    const s = str.trim();
+    if (!s) return NaN;
+    const iso = s.match(/T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (iso) return parseInt(iso[1], 10) * 60 + parseInt(iso[2], 10) + (parseInt(iso[3], 10) || 0) / 60;
+    const hm = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+    if (hm) {
+      let h = parseInt(hm[1], 10);
+      const m = parseInt(hm[2], 10) + (parseInt(hm[3], 10) || 0) / 60;
+      if (hm[4]) {
+        if (hm[4].toLowerCase() === 'pm' && h !== 12) h += 12;
+        if (hm[4].toLowerCase() === 'am' && h === 12) h = 0;
+      }
+      return h * 60 + m;
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? NaN : d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+  };
+  const depM = parseToMinutes(departureTime);
+  const arrM = parseToMinutes(arrivalTime);
+  if (Number.isNaN(depM) || Number.isNaN(arrM)) return '';
+  let diffM = arrM - depM;
+  if (diffM < 0) diffM += 24 * 60;
+  const h = Math.floor(diffM / 60);
+  const m = Math.round(diffM % 60);
+  if (h === 0 && m === 0) return '';
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 function mapGraphQLItemToFlight(item, isAuthor) {
   const imageRef = item?.image || item?.bannerimage;
   const imageUrl = imageRef?.[isAuthor ? '_authorUrl' : '_publishUrl'] || imageRef?._dynamicUrl || '';
@@ -153,6 +190,10 @@ function mapGraphQLItemToFlight(item, isAuthor) {
   const fromName = item?.flightFromFullName ?? item?.fromName ?? from ?? '';
   const toName = item?.flightToFullName ?? item?.toName ?? to ?? '';
   const price = Number(item?.flightPrice ?? item?.price) || 0;
+  const departureTime = item?.departureTime ?? '';
+  const arrivalTime = item?.arrivalTime ?? '';
+  const flightLength =
+    item?.flightLength ?? item?.length ?? calculateFlightLengthFromTimes(departureTime, arrivalTime);
   return {
     id,
     sku: item?.sku?.trim() || id,
@@ -160,11 +201,12 @@ function mapGraphQLItemToFlight(item, isAuthor) {
     to,
     fromName,
     toName,
-    departureTime: item?.departureTime ?? '',
-    arrivalTime: item?.arrivalTime ?? '',
+    departureTime,
+    arrivalTime,
     price,
     class: item?.flightClass ?? item?.class ?? 'Standard',
     image: imageUrl,
+    flightLength,
   };
 }
 
@@ -355,7 +397,9 @@ function displayFlightResults(flights, from, to, date, config = {}) {
   // Use authorable images if provided (already an array from readImageReferences)
   const authorableImages = Array.isArray(config.flightImages) ? config.flightImages : [];
   
+  const dateForDataLayer = date != null ? (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date) ? date.slice(0, 10) : (() => { try { const d = new Date(date); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10); } catch (e) { return ''; } })()) : '';
   flights.forEach((flight, index) => {
+    const flightWithDate = { ...flight, date: dateForDataLayer, flightLength: flight.flightLength || '' };
     const flightCard = createElement('div', 'flight-card');
     
     const imageContainer = createElement('div', 'flight-card-image');
@@ -396,7 +440,7 @@ function displayFlightResults(flights, from, to, date, config = {}) {
     
     const selectButton = createElement('button', 'flight-select-button', 'Select');
     selectButton.addEventListener('click', () => {
-      handleFlightSelect(flight);
+      handleFlightSelect(flightWithDate);
     });
     
     priceContainer.appendChild(priceClass);
@@ -445,23 +489,34 @@ function buildCartFromSelectedFlights(flights) {
   };
 }
 
+function getCurrentDateYYYYMMDD() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // Update datalayer with cart and latest string vars; persists via updateDataLayer (localStorage)
+// Sets all fields required by XDM - Flight Selection (Reservation - Date, Flight Length, etc.)
 function updateDataLayerWithSelectedFlights(latestFlight) {
   if (typeof window.updateDataLayer !== 'function') return;
   const selected = getSelectedFlights();
   const cart = buildCartFromSelectedFlights(selected);
+  const dl = typeof window.dataLayer !== 'undefined' ? window.dataLayer : {};
   const updates = {
     cart,
-    // String-only vars: latest selected flight only
     from: latestFlight?.from || '',
     to: latestFlight?.to || '',
     flightNumber: latestFlight?.id || '',
     class: latestFlight?.class || '',
+    date: getCurrentDateYYYYMMDD(),
+    flightLength: latestFlight?.flightLength ?? dl?.flightLength ?? '',
   };
   window.updateDataLayer(updates, true);
 }
 
-// Handle flight selection: add to trip, update datalayer (and persist), then go to checkout
+// Handle flight selection: add to trip, update datalayer, fire Launch event (flight.selected), then go to checkout
 function handleFlightSelect(flight) {
   const fullFlight = {
     ...flight,
@@ -470,6 +525,7 @@ function handleFlightSelect(flight) {
   };
   addFlightToTrip(fullFlight);
   updateDataLayerWithSelectedFlights(fullFlight);
+  document.dispatchEvent(new CustomEvent('flight.selected', { bubbles: true }));
   window.location.href = getCheckoutPath();
 }
 
@@ -933,6 +989,7 @@ function processFlightItem(row) {
           price: parseFloat(price) || 0,
           class: flightClass,
           image: imageUrl,
+          flightLength: calculateFlightLengthFromTimes(departureTime, arrivalTime),
         });
       };
     }

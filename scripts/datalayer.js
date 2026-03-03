@@ -156,10 +156,10 @@ function getInitialDataLayerFromDataElements() {
       payWithPoints: false,
     },
     partnerData: {
-      Presence_of_premimum_credit_card: '',
+      Presence_of_premimum_credit_card: false,
       PandemicResponseNewTravelFlexibleScale: '',
-      VacationSpenders: '',
-      PartnerID: '',
+      VacationSpenders: 87,
+      PartnerID: "Partner456",
       InterestInTravel: '',
     },
     payment: {
