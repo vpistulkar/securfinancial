@@ -337,8 +337,9 @@ function renderTripTotal(sidebar, total) {
         // eslint-disable-next-line no-console
         console.warn('Could not save booking to sessionStorage', e);
       }
+      let orderId;
       if (typeof window.updateDataLayer === 'function') {
-        const orderId = generate10AlphaNumeric();
+        orderId = generate10AlphaNumeric();
         const firstFlight = flights[0];
         updateDataLayerFromCheckoutForm(block);
         const bookingUpdates = {
