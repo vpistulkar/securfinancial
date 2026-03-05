@@ -163,10 +163,8 @@ function getInitialDataLayerFromDataElements() {
     },
     partnerData: {
       Presence_of_premimum_credit_card: 'n',
-      PandemicResponseNewTravelFlexibleScale: '',
       VacationSpenders: 87,
-      PartnerID: "Partner456",
-      InterestInTravel: '',
+      PartnerID: "Partner456"
     },
     payment: {
       nameOnCard: '',
