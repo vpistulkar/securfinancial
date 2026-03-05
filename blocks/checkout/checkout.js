@@ -75,6 +75,14 @@ function generateItineraryNumber() {
   return s;
 }
 
+/** Generate 10 alphanumeric characters (e.g. "fa8e413cc7") for commerce.order.purchaseOrderNumber and order */
+function generate10AlphaNumeric() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let s = '';
+  for (let i = 0; i < 10; i += 1) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
 function collectCheckoutFormData(block) {
   const data = {};
   const inputs = block.querySelectorAll('input, select');
@@ -191,6 +199,8 @@ function updateDataLayerFromCheckoutForm(block) {
 
   const yesNo = (x) => (typeof window.getDataLayerYesNo === 'function' ? window.getDataLayerYesNo(x) : (x ? 'y' : 'n'));
   const updates = {
+    emailConsent: v('promo') ?? false,
+    extraLuggage: v('upgrade-luggage') ?? false,
     upgradeWithPoints: yesNo(v('upgrade-points')),
     travelPreferences: {
       seat: v('seat') || '',
@@ -328,14 +338,39 @@ function renderTripTotal(sidebar, total) {
         console.warn('Could not save booking to sessionStorage', e);
       }
       if (typeof window.updateDataLayer === 'function') {
+        const orderId = generate10AlphaNumeric();
+        const firstFlight = flights[0];
         updateDataLayerFromCheckoutForm(block);
-        window.updateDataLayer({
+        const bookingUpdates = {
+          order: orderId,
+          commerce: { order: { purchaseOrderNumber: orderId } },
           itineraryNumber: itineraryNum,
           bookingReference: bookingRef,
           ticketNumber: ticketNum,
-        }, true);
+          cart: { ...(typeof window.getDataLayerProperty === 'function' ? window.getDataLayerProperty('cart') : {}), total: flightsTotal },
+          personalEmail: { address: formData.email || '' },
+          _demosystem4: {
+            identification: {
+              core: {
+                loyaltyId: formData.frequentFlyerId || (typeof window.getDataLayerProperty === 'function' ? (window.getDataLayerProperty('_demosystem4.identification.core')?.loyaltyId) : undefined) || '',
+              },
+            },
+          },
+        };
+        if (firstFlight) {
+          const dateVal = firstFlight.date;
+          const todayISO = typeof window.getDataLayerDate === 'function' ? window.getDataLayerDate(new Date().toISOString().slice(0, 10)) : '';
+          bookingUpdates.from = firstFlight.from || '';
+          bookingUpdates.to = firstFlight.to || '';
+          bookingUpdates.flightNumber = firstFlight.id || '';
+          bookingUpdates.class = (typeof window.getDataLayerFlightClass === 'function' ? window.getDataLayerFlightClass(firstFlight.class) : (firstFlight.class || '')) || '';
+          bookingUpdates.flightLength = (typeof window.getDataLayerFlightLength === 'function' ? window.getDataLayerFlightLength(firstFlight.flightLength) : (parseInt(firstFlight.flightLength, 10) || 0));
+          bookingUpdates.date = (typeof window.getDataLayerDate === 'function' ? (window.getDataLayerDate(dateVal) || todayISO) : (dateVal || todayISO)) || '';
+        }
+        window.updateDataLayer(bookingUpdates, true);
+        document.dispatchEvent(new CustomEvent('flight.booking', { bubbles: true }));
       }
-      setTimeout(() => { window.location.href = getConfirmationPath(); }, 2000);
+      setTimeout(() => { window.location.href = getConfirmationPath()+ '?order='+orderId; }, 2000);
     };
   }
   sidebar.appendChild(box);

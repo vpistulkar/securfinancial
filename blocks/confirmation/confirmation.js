@@ -73,34 +73,5 @@ function renderConfirmation(block, data) {
 export default async function decorate(block) {
   const data = getBookingData();
   renderConfirmation(block, data);
-  if (data && typeof window.updateDataLayer === 'function') {
-    const firstFlight = data.flights && data.flights[0];
-    const formData = data.formData || {};
-    const updates = {
-      bookingReference: data.bookingReference,
-      ticketNumber: data.electronicTicketNumber,
-      itineraryNumber: data.itineraryNumber,
-      cart: { ...(typeof window.getDataLayerProperty === 'function' ? window.getDataLayerProperty('cart') : {}), total: data.total },
-      personalEmail: { address: formData.email || '' },
-      _demosystem4: {
-        identification: {
-          core: {
-            loyaltyId: formData.frequentFlyerId || (typeof window.getDataLayerProperty === 'function' ? (window.getDataLayerProperty('_demosystem4.identification.core')?.loyaltyId) : undefined) || '',
-          },
-        },
-      },
-    };
-    if (firstFlight) {
-      const dateVal = firstFlight.date;
-      const todayISO = typeof window.getDataLayerDate === 'function' ? window.getDataLayerDate(new Date().toISOString().slice(0, 10)) : '';
-      updates.from = firstFlight.from || '';
-      updates.to = firstFlight.to || '';
-      updates.flightNumber = firstFlight.id || '';
-      updates.class = (typeof window.getDataLayerFlightClass === 'function' ? window.getDataLayerFlightClass(firstFlight.class) : (firstFlight.class || '')) || '';
-      updates.flightLength = (typeof window.getDataLayerFlightLength === 'function' ? window.getDataLayerFlightLength(firstFlight.flightLength) : (parseInt(firstFlight.flightLength, 10) || 0));
-      updates.date = (typeof window.getDataLayerDate === 'function' ? (window.getDataLayerDate(dateVal) || todayISO) : (dateVal || todayISO)) || '';
-    }
-    window.updateDataLayer(updates, true);
-    document.dispatchEvent(new CustomEvent('flight.booking', { bubbles: true }));
-  }
+  // DataLayer update and flight.booking event are done on checkout (Confirm Purchase); confirmation only renders the ticket.
 }
