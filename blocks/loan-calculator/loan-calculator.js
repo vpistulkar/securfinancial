@@ -73,8 +73,14 @@ export default async function decorate(block) {
   }
   block.appendChild(configContainer);
 
+  function getConfigSource() {
+    const cfgEl = block.querySelector('.loan-calculator-config');
+    if (cfgEl && cfgEl.querySelectorAll(':scope > div').length > 0) return cfgEl;
+    return block;
+  }
+
   function refreshConfigFromUE() {
-    const cfg = readBlockConfig(configContainer) || {};
+    const cfg = readBlockConfig(getConfigSource()) || {};
     interestRate = parseNumber(cfg['interest-rate'] ?? cfg.interestrate ?? cfg.interestRate, DEFAULT_INTEREST_RATE);
     applyNowLink = (cfg['apply-now-link'] ?? cfg.applynowlink ?? cfg.applyNowLink ?? '').toString().trim();
     applyNowText = (cfg['apply-now-text'] ?? cfg.applynowtext ?? cfg.applyNowText ?? 'Apply now').toString().trim();
@@ -173,18 +179,33 @@ export default async function decorate(block) {
 
   updatePayment();
 
+  function applyConfigAndUpdate() {
+    refreshConfigFromUE();
+    updatePayment();
+    descEl.textContent = description;
+    updateCta();
+  }
+
   /* When UE updates Interest Rate (or other config), re-read config and refresh monthly payment */
   let refreshTimeout;
   const observer = new MutationObserver(() => {
     clearTimeout(refreshTimeout);
-    refreshTimeout = setTimeout(() => {
-      refreshConfigFromUE();
-      updatePayment();
-      descEl.textContent = description;
-      updateCta();
-    }, 150);
+    refreshTimeout = setTimeout(applyConfigAndUpdate, 150);
   });
   observer.observe(configContainer, { childList: true, subtree: true, characterData: true });
+
+  /* Fallback: UE may write config to DOM only on save. Poll so interest rate changes are picked up. */
+  const pollInterval = 2000;
+  let lastRate = interestRate;
+  const pollTimer = setInterval(() => {
+    if (!document.hasFocus()) return;
+    const cfg = readBlockConfig(getConfigSource()) || {};
+    const newRate = parseNumber(cfg['interest-rate'] ?? cfg.interestrate ?? cfg.interestRate, DEFAULT_INTEREST_RATE);
+    if (newRate !== lastRate) {
+      applyConfigAndUpdate();
+      lastRate = interestRate;
+    }
+  }, pollInterval);
 
   contentRoot.append(heading, grid);
   block.appendChild(contentRoot);
