@@ -53,10 +53,10 @@ function buildSlider(id, label, value, min, max, step, formatter) {
 
 export default async function decorate(block) {
   const config = readBlockConfig(block) || {};
-  const interestRate = parseNumber(config['interest-rate'] ?? config.interestrate ?? config.interestRate, DEFAULT_INTEREST_RATE);
-  const applyNowLink = (config['apply-now-link'] ?? config.applynowlink ?? config.applyNowLink ?? '').toString().trim();
-  const applyNowText = (config['apply-now-text'] ?? config.applynowtext ?? config.applyNowText ?? 'Apply now').toString().trim();
-  const description = (config.description ?? 'Estimate how much you could be paying monthly for your loan').toString().trim();
+  let interestRate = parseNumber(config['interest-rate'] ?? config.interestrate ?? config.interestRate, DEFAULT_INTEREST_RATE);
+  let applyNowLink = (config['apply-now-link'] ?? config.applynowlink ?? config.applyNowLink ?? '').toString().trim();
+  let applyNowText = (config['apply-now-text'] ?? config.applynowtext ?? config.applyNowText ?? 'Apply now').toString().trim();
+  let description = (config.description ?? 'Estimate how much you could be paying monthly for your loan').toString().trim();
 
   const codeBasePath = window.hlx?.codeBasePath || '';
   await loadCSS(`${codeBasePath}/blocks/loan-calculator/loan-calculator.css`);
@@ -72,6 +72,14 @@ export default async function decorate(block) {
     configContainer.appendChild(block.firstChild);
   }
   block.appendChild(configContainer);
+
+  function refreshConfigFromUE() {
+    const cfg = readBlockConfig(configContainer) || {};
+    interestRate = parseNumber(cfg['interest-rate'] ?? cfg.interestrate ?? cfg.interestRate, DEFAULT_INTEREST_RATE);
+    applyNowLink = (cfg['apply-now-link'] ?? cfg.applynowlink ?? cfg.applyNowLink ?? '').toString().trim();
+    applyNowText = (cfg['apply-now-text'] ?? cfg.applynowtext ?? cfg.applyNowText ?? 'Apply now').toString().trim();
+    description = (cfg.description ?? 'Estimate how much you could be paying monthly for your loan').toString().trim();
+  }
 
   const contentRoot = document.createElement('div');
   contentRoot.className = 'loan-calculator-root';
@@ -140,10 +148,16 @@ export default async function decorate(block) {
   const ctaWrap = document.createElement('div');
   ctaWrap.className = 'loan-calculator-cta';
   const cta = document.createElement('a');
-  cta.href = applyNowLink || '#';
   cta.className = 'loan-calculator-apply-button';
+  cta.href = applyNowLink || '#';
   cta.textContent = applyNowText;
-  if (!applyNowLink) cta.addEventListener('click', (e) => e.preventDefault());
+  cta.addEventListener('click', (e) => {
+    if (!cta.href || cta.href === '#' || cta.href.endsWith('#')) e.preventDefault();
+  });
+  function updateCta() {
+    cta.href = applyNowLink || '#';
+    cta.textContent = applyNowText;
+  }
   ctaWrap.append(cta);
   const descEl = document.createElement('p');
   descEl.className = 'loan-calculator-description';
@@ -158,6 +172,19 @@ export default async function decorate(block) {
   }
 
   updatePayment();
+
+  /* When UE updates Interest Rate (or other config), re-read config and refresh monthly payment */
+  let refreshTimeout;
+  const observer = new MutationObserver(() => {
+    clearTimeout(refreshTimeout);
+    refreshTimeout = setTimeout(() => {
+      refreshConfigFromUE();
+      updatePayment();
+      descEl.textContent = description;
+      updateCta();
+    }, 150);
+  });
+  observer.observe(configContainer, { childList: true, subtree: true, characterData: true });
 
   contentRoot.append(heading, grid);
   block.appendChild(contentRoot);
