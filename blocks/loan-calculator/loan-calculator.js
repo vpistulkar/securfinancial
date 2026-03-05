@@ -61,8 +61,20 @@ export default async function decorate(block) {
   const codeBasePath = window.hlx?.codeBasePath || '';
   await loadCSS(`${codeBasePath}/blocks/loan-calculator/loan-calculator.css`);
 
-  [...block.children].forEach((row) => { row.style.display = 'none'; });
   block.classList.add('loan-calculator-block');
+
+  /* Single wrapper so UE content tree shows one "Loan Calculator" (avoids tripling when opening in UE) */
+  const configContainer = document.createElement('div');
+  configContainer.className = 'loan-calculator-config';
+  configContainer.setAttribute('aria-hidden', 'true');
+  configContainer.hidden = true;
+  while (block.firstChild) {
+    configContainer.appendChild(block.firstChild);
+  }
+  block.appendChild(configContainer);
+
+  const contentRoot = document.createElement('div');
+  contentRoot.className = 'loan-calculator-root';
 
   let purchasePrice = 1028000;
   let downPayment = 100000;
@@ -147,5 +159,6 @@ export default async function decorate(block) {
 
   updatePayment();
 
-  block.append(heading, grid);
+  contentRoot.append(heading, grid);
+  block.appendChild(contentRoot);
 }
