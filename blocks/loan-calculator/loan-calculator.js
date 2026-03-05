@@ -3,7 +3,7 @@
  * monthly payment output and Apply now CTA. Interest rate from UE (block config).
  */
 
-import { readBlockConfig, loadCSS } from '../../scripts/aem.js';
+import { readBlockConfig, loadCSS, toClassName } from '../../scripts/aem.js';
 
 const DEFAULT_INTEREST_RATE = 6.5;
 const MIN_PRICE = 100000;
@@ -72,6 +72,20 @@ export default async function decorate(block) {
     configContainer.appendChild(block.firstChild);
   }
   block.appendChild(configContainer);
+
+  /* Mark value cells with data-aue-prop so UE can bind and update Interest Rate etc. when author edits in panel */
+  configContainer.querySelectorAll(':scope > div').forEach((row) => {
+    const cols = [...row.children];
+    if (cols.length >= 2 && cols[0].textContent) {
+      const prop = toClassName(cols[0].textContent);
+      if (prop) {
+        const valueCell = cols[1];
+        valueCell.setAttribute('data-aue-prop', prop);
+        const p = valueCell.querySelector('p');
+        if (p) p.setAttribute('data-aue-prop', prop);
+      }
+    }
+  });
 
   function getConfigSource() {
     const cfgEl = block.querySelector('.loan-calculator-config');
@@ -194,8 +208,8 @@ export default async function decorate(block) {
   });
   observer.observe(configContainer, { childList: true, subtree: true, characterData: true });
 
-  /* Fallback: UE may write config to DOM only on save. Poll so interest rate changes are picked up. */
-  const pollInterval = 2000;
+  /* Fallback: UE may write config to DOM on blur/save. Poll so interest rate changes are picked up. */
+  const pollInterval = 500;
   let lastRate = interestRate;
   const pollTimer = setInterval(() => {
     if (!document.hasFocus()) return;
