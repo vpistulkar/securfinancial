@@ -410,6 +410,42 @@ function renderTripTotal(sidebar, total) {
   sidebar.appendChild(box);
 }
 
+/** Fill the form data from datalayer object available in local storage */
+function fillFormDataFromDataLayer(block) {
+  try {
+    const dataLayerKey = 'wkndfly_registered_user';
+    const rawData = localStorage.getItem(dataLayerKey);
+    if (!rawData) return;
+
+    const userData = JSON.parse(rawData);
+    const fields = [
+      { name: 'firstName', value: userData?.person?.name?.firstName },
+      { name: 'middleName', value: userData?.person?.name?.middleName },
+      { name: 'lastName', value: userData?.person?.name?.lastName },
+      { name: 'birthDate', value: userData?.person?.birthDate },
+      { name: 'gender', value: userData?.person?.gender },
+      { name: 'frequentFlyerId', value: userData?._demosystem4?.identification?.core?.loyaltyId },
+      { name: 'email', value: userData?.personalEmail?.address },
+      { name: 'phone', value: userData?.mobilePhone?.number },
+      { name: 'wknd-club', value: userData?.person?.isMember },
+      { name: 'sms', value: userData?.smsConsent },
+      { name: 'promo', value: userData?.emailConsent },
+    ];
+
+    fields.forEach(({ name, value }) => {
+      const el = block.querySelector(`[name="${name}"]`);
+      if (!el) return;
+      if (el.type === 'checkbox') {
+        el.checked = !!value;
+      } else {
+        el.value = value || '';
+      }
+    });
+  } catch (e) {
+    console.warn('Could not fill form data from datalayer', e);
+  }
+}
+
 export default async function decorate(block) {
   block.classList.add('checkout-block');
   const wrapper = document.createElement('div');
@@ -452,6 +488,7 @@ export default async function decorate(block) {
   restrictNumericFieldsToDigits(block);
   formatBirthDateInput(block);
   attachCheckoutDataLayerListeners(block);
+  fillFormDataFromDataLayer(block);
 }
 
 /** Restrict phone, card number, CVV to digits only (strip non-numeric on input) */
