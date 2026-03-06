@@ -269,7 +269,7 @@ function renderPassengerForm(mainCol) {
       <label>Frequent Flyer ID <input type="text" name="frequentFlyerId"></label>
       <label>Email Address <input type="email" name="email"></label>
       <label>Phone Number <input type="tel" name="phone" inputmode="numeric" pattern="[0-9]*" maxlength="20" placeholder="Digits only"></label>
-      <label class="checkout-checkbox"><input type="checkbox" name="wknd-club"> I want to sign up for WKND Fly Club</label>
+      <label class="checkout-checkbox"><input type="checkbox" name="wknd-club" checked> I want to sign up for WKND Fly Club</label>
       <label class="checkout-checkbox"><input type="checkbox" name="sms"> I want to get SMS with booking confirmation</label>
       <label class="checkout-checkbox"><input type="checkbox" name="promo"> I want to receive electronic mail with promotions and announcements</label>
     </div>
