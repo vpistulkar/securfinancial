@@ -135,15 +135,19 @@ export default async function decorate(block) {
     applyButtonConfigToSubmitButton(block, config);
     const form = block.querySelector('form');
     if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
         const email = form.querySelector('input[name="email"]')?.value?.trim() || '';
         const firstName = form.querySelector('input[name="firstName"]')?.value?.trim() || '';
         const lastName = form.querySelector('input[name="lastName"]')?.value?.trim() || '';
+        const consent = form.querySelector('input[name="consent"]')?.checked ?? true ? "true" : "false";
         if (typeof window.updateDataLayer === 'function') {
           window.updateDataLayer({
             personalEmail: { address: email },
             person: { name: { firstName, lastName } },
+            loyaltyConsent: consent,
           });
         }
         showSuccessPopup();
