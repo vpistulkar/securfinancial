@@ -159,6 +159,19 @@ function attachFormSubmitHandler(block) {
       const firstName = form.querySelector('input[name="firstName"]')?.value?.trim() || '';
       const lastName = form.querySelector('input[name="lastName"]')?.value?.trim() || '';
       const consent = form.querySelector('input[name="consent"]')?.checked ?? true ? 'true' : 'false';
+
+      // So Launch "Profile - Email from Storage" and Identity Map resolve when Registration rule runs
+      if (email) {
+        try {
+          localStorage.setItem("com.adobe.reactor.dataElements.Profile - Email", email);
+          if (typeof window._satellite !== "undefined" && typeof window._satellite.setVar === "function") {
+            window._satellite.setVar("Profile - Email", email);
+          }
+        } catch (e) {
+          // ignore storage/setVar errors
+        }
+      }
+
       if (typeof window.updateDataLayer === 'function') {
         window.updateDataLayer({
           personalEmail: { address: email },

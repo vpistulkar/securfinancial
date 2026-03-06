@@ -333,6 +333,13 @@ function renderTripTotal(sidebar, total) {
       };
       try {
         sessionStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(bookingData));
+        // So Launch "Profile - Email from Storage" and Identity Map resolve when Confirm Purchase rule runs
+        if (formData.email) {
+          localStorage.setItem("com.adobe.reactor.dataElements.Profile - Email", formData.email);
+          if (typeof window._satellite !== "undefined" && typeof window._satellite.setVar === "function") {
+            window._satellite.setVar("Profile - Email", formData.email);
+          }
+        }
       } catch (e) {
         // eslint-disable-next-line no-console
         console.warn('Could not save booking to sessionStorage', e);
