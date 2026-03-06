@@ -178,7 +178,7 @@ function renderUpgradeAndPreferences(mainCol) {
     <div class="checkout-prefs">
       <label>Seat <select name="seat"><option value="">Select...</option><option value="window">Window</option><option value="aisle">Aisle</option></select></label>
       <label>Section <select name="section"><option value="">Select...</option><option value="forward">Forward</option><option value="rear">Rear</option></select></label>
-      <label>Meal <select name="meal"><option value="">Select...</option><option value="standard">Standard</option><option value="vegetarian">Vegetarian</option></select></label>
+      <label>Meal <select name="meal"><option value="">Select...</option><option value="regular">Regular</option><option value="vegetarian">Vegetarian</option><option value="low-calories">Low Calories</option><option value="peanut-free">Peanut-Free</option><option value="non-lactose">Non-Lactose</option><option value="diabetic">Diabetic</option></select></label>
     </div>
   `;
   mainCol.appendChild(prefs);

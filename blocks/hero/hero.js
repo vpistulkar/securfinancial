@@ -47,7 +47,7 @@ export default function decorate(block) {
 
   /* Hide remaining config rows (alignment, verticalalignment, isfullwidth, height, color, link, button actions) on live */
   [...block.children].forEach((row, index) => {
-    if (index >= 7) row.style.display = 'none';
+    if (index >= 6) row.style.display = 'none';
   });
 
   /* Banner-like: alignment, vertical alignment, full width – from config or UE (data-aue-prop) */
