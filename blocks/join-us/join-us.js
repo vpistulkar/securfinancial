@@ -6,7 +6,6 @@
  */
 
 import { readBlockConfig } from "../../scripts/aem.js";
-import { dispatchCustomEvent } from "../../scripts/custom-events.js";
 
 function applyButtonConfigToSubmitButton(block, config) {
   const submitButton = block.querySelector("form button[type='submit']");
@@ -133,24 +132,56 @@ export default async function decorate(block) {
   // After form is rendered, apply button config and attach submit handler
   setTimeout(() => {
     applyButtonConfigToSubmitButton(block, config);
-    const form = block.querySelector('form');
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const email = form.querySelector('input[name="email"]')?.value?.trim() || '';
-        const firstName = form.querySelector('input[name="firstName"]')?.value?.trim() || '';
-        const lastName = form.querySelector('input[name="lastName"]')?.value?.trim() || '';
-        if (typeof window.updateDataLayer === 'function') {
-          window.updateDataLayer({
-            personalEmail: { address: email },
-            person: { name: { firstName, lastName } },
-          });
-        }
-        showSuccessPopup();
-        const submitButton = form.querySelector("button[type='submit']");
-        const authoredEventType = submitButton?.dataset?.buttonEventType?.trim();
-        dispatchCustomEvent(authoredEventType);
-      });
-    }
+    attachFormSubmitHandler(block);
   }, 100);
+}
+
+/**
+ * Attaches form submission handler.
+ * Uses capture phase so we run first; stopImmediatePropagation prevents the Adaptive Form
+ * runtime from doing a POST to the page URL (which returns 405 / "Error invoking a rest API").
+ * @param {HTMLElement} block - The join-us block
+ */
+function attachFormSubmitHandler(block) {
+  const form = block.querySelector('form');
+  if (!form) {
+    console.warn('Form not found in join-us block');
+    return;
+  }
+
+  form.addEventListener(
+    'submit',
+    (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const email = form.querySelector('input[name="email"]')?.value?.trim() || '';
+      const firstName = form.querySelector('input[name="firstName"]')?.value?.trim() || '';
+      const lastName = form.querySelector('input[name="lastName"]')?.value?.trim() || '';
+      const consent = form.querySelector('input[name="consent"]')?.checked ?? true ? 'true' : 'false';
+
+      // So Launch "Profile - Email from Storage" and Identity Map resolve when Registration rule runs
+      if (email) {
+        try {
+          localStorage.setItem("com.adobe.reactor.dataElements.Profile - Email", email);
+          if (typeof window._satellite !== "undefined" && typeof window._satellite.setVar === "function") {
+            window._satellite.setVar("Profile - Email", email);
+          }
+        } catch (e) {
+          // ignore storage/setVar errors
+        }
+      }
+
+      if (typeof window.updateDataLayer === 'function') {
+        window.updateDataLayer({
+          personalEmail: { address: email },
+          person: { name: { firstName, lastName } },
+          loyaltyConsent: consent,
+        });
+      }
+      showSuccessPopup();
+      document.dispatchEvent(new CustomEvent('join.wkndclub', { bubbles: true }));
+    },
+    true
+  );
 }
