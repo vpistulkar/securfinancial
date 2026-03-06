@@ -419,17 +419,10 @@ function fillFormDataFromDataLayer(block) {
 
     const userData = JSON.parse(rawData);
     const fields = [
-      { name: 'firstName', value: userData?.person?.name?.firstName },
-      { name: 'middleName', value: userData?.person?.name?.middleName },
-      { name: 'lastName', value: userData?.person?.name?.lastName },
-      { name: 'birthDate', value: userData?.person?.birthDate },
-      { name: 'gender', value: userData?.person?.gender },
-      { name: 'frequentFlyerId', value: userData?._demosystem4?.identification?.core?.loyaltyId },
-      { name: 'email', value: userData?.personalEmail?.address },
-      { name: 'phone', value: userData?.mobilePhone?.number },
-      { name: 'wknd-club', value: userData?.person?.isMember },
-      { name: 'sms', value: userData?.smsConsent },
-      { name: 'promo', value: userData?.emailConsent },
+      { name: 'firstName', value: userData?.firstName },
+      { name: 'lastName', value: userData?.lastName },
+      { name: 'email', value: userData?.email },
+      { name: 'phone', value: userData?.phone },
     ];
 
     fields.forEach(({ name, value }) => {
