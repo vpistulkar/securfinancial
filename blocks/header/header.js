@@ -730,14 +730,11 @@ export default async function decorate(block) {
   const navTools = nav.querySelector('.nav-tools');
   if (navTools) {
     const contentWrapper = nav.querySelector('.nav-tools > div[class = "default-content-wrapper"]');
-    const targetContainer = contentWrapper || navTools;
-
+    const targetContainerForSignIn = nav.querySelector('.nav-sections > div[class = "default-content-wrapper"]');
     // Add Sign In Button or User Profile
     const isLoggedIn = localStorage.getItem("wkndfly_user_logged_in") === "true";
-
     if (isLoggedIn) {
-      // Show user profile with dropdown
-      createUserProfile(targetContainer, langCode);
+      createUserProfile(targetContainerForSignIn, langCode);
     } else {
       // Show sign-in button
       const signInLink = document.createElement("a");
@@ -745,7 +742,7 @@ export default async function decorate(block) {
       signInLink.className = "sign-in-btn";
       signInLink.textContent = "SIGN IN";
       signInLink.setAttribute("aria-label", "Sign In");
-      targetContainer.append(signInLink);
+      targetContainerForSignIn.append(signInLink);
     }
 
     // Language switcher (minimal UI)
@@ -821,6 +818,7 @@ export default async function decorate(block) {
         }
       });
       langWrap.append(langBtn, langMenu);
+      const targetContainer = contentWrapper || navTools;
       targetContainer.append(langWrap);
     } catch (e) {
       // eslint-disable-next-line no-console
