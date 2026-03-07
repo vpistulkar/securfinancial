@@ -220,6 +220,7 @@ function updateDataLayerFromCheckoutForm(block) {
     personalEmail: { address: v('email') || '' },
     mobilePhone: { number: v('phone') || '' },
     smsConsent: yesNo(v('sms')),
+    loyaltyConsent: yesNo(v('wknd-club')),
     payment: {
       nameOnCard: v('nameOnCard') || '',
       cardExpiration: v('expiration') || '',
