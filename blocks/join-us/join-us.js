@@ -6,6 +6,7 @@
  */
 
 import { readBlockConfig } from "../../scripts/aem.js";
+import { dispatchCustomEvent } from "../../scripts/custom-events.js";
 
 function applyButtonConfigToSubmitButton(block, config) {
   const submitButton = block.querySelector("form button[type='submit']");
@@ -180,7 +181,12 @@ function attachFormSubmitHandler(block) {
         });
       }
       showSuccessPopup();
-      document.dispatchEvent(new CustomEvent('join.wkndclub', { bubbles: true }));
+      // If button has an authored event type, fire it (for Launch, same pattern as flight-search)
+      const submitBtn = form.querySelector("button[type='submit']");
+      const authoredEventType = submitBtn?.dataset?.buttonEventType?.trim();
+      if (authoredEventType) {
+        dispatchCustomEvent(authoredEventType);
+      }
     },
     true
   );

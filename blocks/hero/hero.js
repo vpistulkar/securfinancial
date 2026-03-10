@@ -67,7 +67,7 @@ export default function decorate(block) {
     if (/^\d+$/.test(heightVal)) heightVal = `${heightVal}px`;
     block.style.height = heightVal;
   }
-  const textWrapper = block.querySelector(':scope > div:nth-child(2)') || block;
+  
   const textColor = (config.color ?? config['text-color'] ?? ue('color') ?? ue('textColor'))?.toString?.()?.trim();
   if (textColor) {
     block.classList.add('hero--custom-text-color');
@@ -76,6 +76,11 @@ export default function decorate(block) {
 
   if (config.link && String(config.link).trim()) {
     block.dataset.sectionLink = String(config.link).trim();
+  }
+
+  const customStyles = config.customStyles ?? config['custom-styles'];
+  if (customStyles && String(customStyles).trim()) {
+    block.classList.add(String(customStyles).trim());
   }
 
   const ctaLink = block.querySelector('p.button-container a, .button-container a');

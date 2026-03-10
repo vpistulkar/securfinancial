@@ -77,6 +77,14 @@
         "value": "",
         "valueType": "string",
         "description": "Comma-separated key,value pairs"
+      },
+      {
+        "component": "text",
+        "name": "customStyles",
+        "label": "Custom Styles",
+        "value": "",
+        "valueType": "string",
+        "description": "Custom styles for the flight search block"
       }
     ]
   }

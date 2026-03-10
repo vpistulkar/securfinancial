@@ -40,6 +40,11 @@ export default function decorate(block) {
     const buttonWebhookUrl = getCell(10);
     const buttonFormId = getCell(11);
     const buttonData = getCell(12);
+    const customStyles = getCell(13);
+
+    if (customStyles && String(customStyles).trim()) {
+      li.classList.add(String(customStyles).trim());
+    }
 
     li.classList.add(`cards-card--alignment-${alignment}`, `cards-card--verticalalignment-${verticalAlignment}`);
     if (selectable.toLowerCase() === 'true') li.classList.add('cards-card--selectable');
