@@ -12,7 +12,7 @@ let _dataLayer = null;
 
 const STORAGE_KEY = 'wkndfly_dataLayer';
 const STORAGE_TIMESTAMP_KEY = 'wkndfly_dataLayer_timestamp';
-const STORAGE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
+const STORAGE_TTL = 30 * 24 * 60 * 60 * 1000;
 const ECID_SESSION_KEY = 'com.adobe.reactor.dataElements.ECID';
 
 function isObject(item) {
