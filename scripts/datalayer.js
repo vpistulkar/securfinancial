@@ -116,8 +116,8 @@ function getInitialDataLayerFromDataElements() {
     },
     page: {
       thumbnail: '',
-      name: 'home',
-      title: 'HOME',
+      name: '',
+      title: '',
     },
     product: {
       id: '',
@@ -131,15 +131,6 @@ function getInitialDataLayerFromDataElements() {
       subTotal: 0,
       total: 0,
     },
-    to: 'TQO',
-    from: 'WAW',
-    date: (() => {
-      const d = new Date();
-      const y = d.getUTCFullYear();
-      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(d.getUTCDate()).padStart(2, '0');
-      return `${y}-${m}-${day}T00:00:00Z`;
-    })(),
     bookingReference: '',
     flightLength: 0,
     flightNumber: '',
@@ -155,12 +146,7 @@ function getInitialDataLayerFromDataElements() {
     wizard: {
       name: '',
     },
-    options: {
-      businessClass: 'n',
-      businessTrip: 'n',
-      familyTrip: 'n',
-      payWithPoints: 'n',
-    },
+    options: {},
     partnerData: {
       Presence_of_premimum_credit_card: 'n',
       VacationSpenders: 87,
