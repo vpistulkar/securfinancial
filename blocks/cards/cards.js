@@ -8,6 +8,8 @@ export default async function decorate(block) {
 
 import { createOptimizedPicture } from '../../scripts/aem.js';
 import { moveInstrumentation } from '../../scripts/scripts.js';
+import { getSiteName, PATH_PREFIX } from '../../scripts/utils.js';
+import { isAuthorEnvironment } from '../../scripts/scripts.js';
 
 export default function decorate(block) {
   const ul = document.createElement('ul');
@@ -47,7 +49,21 @@ export default function decorate(block) {
 
     li.classList.add(`cards-card--alignment-${alignment}`);
     if (selectable.toLowerCase() === 'true') li.classList.add('cards-card--selectable');
-    if (link) li.dataset.sectionLink = link;
+    if (link) {
+      li.dataset.sectionLink = link;
+      li.addEventListener('click', async () => {
+        const siteName = await getSiteName();
+        const isAuthor = isAuthorEnvironment();
+        const defaultPath = `/content/${siteName}${PATH_PREFIX}`;
+        const sectionLink = link.replaceAll(defaultPath, '');
+        if(isAuthor){
+          window.location.href = link + '.html';
+        } else {
+          window.location.href = sectionLink;
+        }
+      });
+    }
+
 
     moveInstrumentation(row, li);
     while (row.firstElementChild) li.append(row.firstElementChild);
