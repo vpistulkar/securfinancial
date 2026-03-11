@@ -51,6 +51,19 @@ function getDestinationFromPath() {
   return country ?? slug;
 }
 
+// If on destination page: return airport code(s) for the country from path, else null. Single code = first airport in that country.
+function getDestinationCodesFromPath() {
+  const country = getDestinationFromPath();
+  if (!country) return null;
+  const codes = AIRPORTS.filter((a) => a.country === country).map((a) => a.code);
+  return codes.length ? codes : null;
+}
+
+function getDestinationCodeFromPath() {
+  const codes = getDestinationCodesFromPath();
+  return codes && codes.length ? codes[0] : null;
+}
+
 // Resolve from/to only when not on a destination page (destination page has no from/to)
 function resolveFromAndTo() {
   const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -159,6 +172,7 @@ async function fetchFlightsFromGraphQL(from, to) {
   }
 }
 
+/** @param {string} destination - Airport code (e.g. ORD, LHR). GraphQL filters by this code. */
 async function fetchFlightsForDestination(destination) {
   if (!destination || !String(destination).trim()) return [];
   const isAuthor = isAuthorEnvironment();
@@ -552,125 +566,33 @@ function isFlightItemEmpty(row) {
   return hasModel; // Only consider empty if it's marked as a flight item
 }
 
-// Ensure flight item has default values ONLY if it's completely empty
-function ensureDefaultValues(row) {
-  // Only populate defaults if the item is truly empty
-  if (!isFlightItemEmpty(row)) {
-    return; // Item has data, don't overwrite
-  }
-  
-  const defaultValues = {
-    image: 'https://t3.ftcdn.net/jpg/05/61/35/04/240_F_561350476_Oz0OHoStNdPdsiDVY6K2DQG2SqyYlSgI.jpg',
-    from: 'JFK',
-    fromName: 'New York',
-    to: 'TQO',
-    toName: 'Tulum',
-    departureTime: '9:00 AM',
-    arrivalTime: '1:30 PM',
-    price: '450.00',
-    class: 'Standard'
-  };
-  
-  const fieldOrder = ['image', 'from', 'fromName', 'to', 'toName', 'departureTime', 'arrivalTime', 'price', 'class'];
-  
-  fieldOrder.forEach((fieldName, index) => {
-    let fieldDiv = row.querySelector(`[data-aue-prop="${fieldName}"]`);
-    
-    // If not found by data attribute, try by index
-    if (!fieldDiv) {
-      const children = Array.from(row.children);
-      if (children[index]) {
-        fieldDiv = children[index];
-        // Add data attribute if missing
-        if (!fieldDiv.getAttribute('data-aue-prop')) {
-          fieldDiv.setAttribute('data-aue-prop', fieldName);
-        }
-      }
-    }
-    
-    // If field div doesn't exist, create it
-    if (!fieldDiv) {
-      fieldDiv = createElement('div', '');
-      fieldDiv.setAttribute('data-aue-prop', fieldName);
-      // Set appropriate data-aue-type based on field type
-      if (fieldName === 'image') {
-        fieldDiv.setAttribute('data-aue-type', 'reference');
-      } else {
-        fieldDiv.setAttribute('data-aue-type', 'text');
-      }
-      row.appendChild(fieldDiv);
-    } else {
-      // Ensure existing field divs have proper data-aue-type
-      if (!fieldDiv.getAttribute('data-aue-type')) {
-        if (fieldName === 'image') {
-          fieldDiv.setAttribute('data-aue-type', 'reference');
-        } else {
-          fieldDiv.setAttribute('data-aue-type', 'text');
-        }
-      }
-    }
-    
-    // Only populate if this specific field is empty
-    const p = fieldDiv.querySelector('p');
-    const link = fieldDiv.querySelector('a');
-    const img = fieldDiv.querySelector('img');
-    const picture = fieldDiv.querySelector('picture');
-    const nestedDiv = fieldDiv.querySelector('div');
-    
-    const hasValue = (p && p.textContent?.trim()) || 
-                     (link && (link.href || link.textContent?.trim())) ||
-                     (img && (img.src || img.getAttribute('data-src'))) ||
-                     (picture && picture.querySelector('img')) ||
-                     (nestedDiv && nestedDiv.textContent?.trim()) ||
-                     (fieldDiv.textContent?.trim() && !fieldDiv.querySelector('p') && !fieldDiv.querySelector('a'));
-    
-    // Only populate if this field is empty
-    if (!hasValue) {
-      // Clear existing content
-      fieldDiv.innerHTML = '';
-      
-      if (fieldName === 'image') {
-        // For image, create a link
-        const imageLink = createElement('a', '');
-        imageLink.href = defaultValues.image;
-        imageLink.textContent = defaultValues.image;
-        fieldDiv.appendChild(imageLink);
-      } else {
-        // For text fields, create a p tag
-        const p = createElement('p', '');
-        p.textContent = defaultValues[fieldName];
-        fieldDiv.appendChild(p);
-      }
-    }
-  });
-}
-
 // Main decorate function
 export default async function decorate(block) {
-  // Prevent multiple executions
-  if (block.dataset.decorated === 'true') {
-    return;
-  }
-  block.dataset.decorated = 'true';
-  
   const urlParams = new URLSearchParams(window.location.search);
   const urlDate = urlParams.get('date');
   const resolved = resolveFromAndTo();
 
   block.className = 'flights';
 
-  // Destination page: path contains /en/destinations/ — no from/to; get destination from URL, one GraphQL call
+  // Destination page: path contains /en/destinations/ — no from/to; GraphQL expects airport code(s)
   if (isDestinationPage()) {
-    const destination = getDestinationFromPath();
+    const destinationCodes = getDestinationCodesFromPath();
+    const destinationLabel = getDestinationFromPath();
     let flights = [];
-    if (destination) {
-      try {
-        flights = await fetchFlightsForDestination(destination);
-      } catch (_) {
-        // keep flights = []
-      }
+    if (destinationCodes?.length) {
+      const allResults = await Promise.all(
+        destinationCodes.map((code) =>
+          fetchFlightsForDestination(code).catch(() => []),
+        ),
+      );
+      const seen = new Set();
+      flights = allResults.flat().filter((f) => {
+        if (seen.has(f.id)) return false;
+        seen.add(f.id);
+        return true;
+      });
     }
-    displayFlightResults(flights, '', destination || 'destination', urlDate);
+    displayFlightResults(flights, '', destinationLabel || 'destination', urlDate);
     addBookNowBar(block);
     const selectedFromUrl = getSelectedFlights();
     if (selectedFromUrl.length > 0) {
