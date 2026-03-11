@@ -179,8 +179,8 @@ async function fetchFlightsForDestination(destination) {
   const encoded = encodeURIComponent(String(destination).trim());
   try {
     const url = isAuthor
-      ? `${AUTHOR_GRAPHQL_BASE_For_Destination};destination=${encoded};ts=${Date.now()}`
-      : `${PUBLISH_GRAPHQL_BASE_For_Destination}?environment=p159983-e1710854&endpoint=flight-details-list-for-destination-page&destination=${encoded}&time=${Date.now()}`;
+      ? `${AUTHOR_GRAPHQL_BASE_For_Destination};to=${encoded};ts=${Date.now()}`
+      : `${PUBLISH_GRAPHQL_BASE_For_Destination}?environment=p159983-e1710854&endpoint=flight-details-list-for-destination-page&to=${encoded}&time=${Date.now()}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
