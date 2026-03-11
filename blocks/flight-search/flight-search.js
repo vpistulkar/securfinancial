@@ -6,65 +6,21 @@ import { getPathDetails } from '../../scripts/utils.js';
 
 // Sample airport data
 const AIRPORTS = [
-  { code: 'WAW', name: 'Warsaw Chopin Airport', city: 'Warsaw' },
-  { code: 'LHR', name: 'London Heathrow', city: 'London' },
-  { code: 'CDG', name: 'Charles de Gaulle', city: 'Paris' },
-  { code: 'ORD', name: 'O\'Hare International', city: 'Chicago' },
-  { code: 'LAS', name: 'McCarran International', city: 'Las Vegas' },
-  { code: 'JFK', name: 'John F. Kennedy International', city: 'New York' },
-  { code: 'MBJ', name: 'Sangster International', city: 'Montego Bay' },
-  { code: 'AMS', name: 'Amsterdam Airport Schiphol', city: 'Amsterdam' },
-  { code: 'TXL', name: 'Berlin Tegel', city: 'Berlin' },
-  { code: 'HND', name: 'Haneda Airport', city: 'Tokyo' },
-  { code: 'SFR', name: 'San Francisco International', city: 'San Francisco' },
-  { code: 'CUN', name: 'Cancún International', city: 'Cancún' },
-  { code: 'DEL', name: 'Indira Gandhi International', city: 'Delhi' },
-  { code: 'TQO', name: 'Tulum International', city: 'Tulum' },
+  { code: 'WAW', city: 'Warsaw', country: 'Poland' },
+  { code: 'LHR', city: 'London', country: 'United Kingdom' },
+  { code: 'CDG', city: 'Paris', country: 'France' },
+  { code: 'ORD', city: 'Chicago', country: 'United States' },
+  { code: 'LAS', city: 'Las Vegas', country: 'United States' },
+  { code: 'JFK', city: 'New York', country: 'United States' },
+  { code: 'MBJ', city: 'Montego Bay', country: 'Jamaica' },
+  { code: 'AMS', city: 'Amsterdam', country: 'Netherlands' },
+  { code: 'TXL', city: 'Berlin', country: 'Germany' },
+  { code: 'HND', city: 'Tokyo', country: 'Japan' },
+  { code: 'SFR', city: 'San Francisco', country: 'United States' },
+  { code: 'CUN', city: 'Cancún', country: 'Mexico' },
+  { code: 'DEL', city: 'Delhi', country: 'India' },
+  { code: 'TQO', city: 'Tulum', country: 'Mexico' },
 ];
-
-// Sample flight data - in production, this would come from an API
-const SAMPLE_FLIGHTS = {
-  'AMS-TQO': [
-    {
-      id: '1',
-      from: 'AMS',
-      to: 'TQO',
-      fromName: 'Amsterdam',
-      toName: 'Tulum',
-      departureTime: '5:15 PM',
-      arrivalTime: '3:30 AM',
-      price: 550.00,
-      class: 'Standard',
-      image: 'https://t4.ftcdn.net/jpg/03/30/53/47/240_F_330534715_1vke3762QI4yYRsnSXNaE8NGDUF8xzno.jpg',
-    },
-    {
-      id: '2',
-      from: 'AMS',
-      to: 'TQO',
-      fromName: 'Amsterdam',
-      toName: 'Tulum',
-      departureTime: '8:30 AM',
-      arrivalTime: '6:45 PM',
-      price: 625.00,
-      class: 'Business',
-      image: 'https://t3.ftcdn.net/jpg/17/40/03/60/240_F_1740036054_pyNaH8LuAe27d9KpFTZSjNAY844g6WJV.jpg',
-    },
-  ],
-  'WAW-TQO': [
-    {
-      id: '3',
-      from: 'WAW',
-      to: 'TQO',
-      fromName: 'Warsaw',
-      toName: 'Tulum',
-      departureTime: '10:00 AM',
-      arrivalTime: '8:15 PM',
-      price: 680.00,
-      class: 'Standard',
-      image: 'https://t4.ftcdn.net/jpg/16/22/86/51/240_F_1622865138_g9NtaEIxizg8ZY1bpNCqJiqbQl9mqFvB.jpg',
-    },
-  ],
-};
 
 // Utility functions
 function createElement(tag, className, content) {
@@ -117,8 +73,8 @@ function createAirportDropdown(airports, selectedCode, placeholder, id) {
     option.dataset.code = airport.code;
     option.innerHTML = `
       <span class="airport-code">${airport.code}</span>
-      <span class="airport-name">${airport.name}</span>
       <span class="airport-city">${airport.city}</span>
+      <span class="airport-country">${airport.country}</span>
     `;
     option.addEventListener('click', () => {
       input.value = airport.code;
@@ -358,19 +314,20 @@ function updateFlightSearchDataLayer() {
   const businessClass = document.getElementById('business-class');
   const travellingChildren = document.getElementById('travelling-children');
   const dateVal = dateInput?.value?.trim();
-  const todayYYYYMMDD = typeof window.getDataLayerDate === 'function'
-    ? window.getDataLayerDate(new Date().toISOString().slice(0, 10))
-    : '';
   const updates = {
     from: fromInput?.value?.trim() || '',
     to: toInput?.value?.trim() || '',
-    date: (typeof window.getDataLayerDate === 'function' ? (window.getDataLayerDate(dateVal) || todayYYYYMMDD) : (dateVal || todayYYYYMMDD)) || '',
     options: {
       businessTrip: (typeof window.getDataLayerYesNo === 'function' ? window.getDataLayerYesNo(businessTrip?.checked) : (businessTrip?.checked ? 'y' : 'n')),
       businessClass: (typeof window.getDataLayerYesNo === 'function' ? window.getDataLayerYesNo(businessClass?.checked) : (businessClass?.checked ? 'y' : 'n')),
       familyTrip: (typeof window.getDataLayerYesNo === 'function' ? window.getDataLayerYesNo(travellingChildren?.checked) : (travellingChildren?.checked ? 'y' : 'n')),
     },
   };
+  if (dateVal) {
+    updates.date = typeof window.getDataLayerDate === 'function'
+      ? (window.getDataLayerDate(dateVal) || dateVal)
+      : dateVal;
+  }
   window.updateDataLayer(updates, true);
 }
 
