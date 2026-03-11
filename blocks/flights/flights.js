@@ -44,9 +44,8 @@ function getDestinationFromPath() {
   const pathname = (typeof window !== 'undefined' && window.location.pathname) || '';
   const match = pathname.match(/\/en\/destinations\/([^/]+)/i);
   if (!match) return null;
-  const slug = slugify(match[1] || '');
+  const slug = slugify(match[1] || '').replaceAll('.html', '');
   if (!slug) return null;
-  slug = slug.replace('.html', '');
   const countries = [...new Set(AIRPORTS.map((a) => a.country))];
   const country = countries.find((c) => slugify(c) === slug);
   return country ?? slug;
