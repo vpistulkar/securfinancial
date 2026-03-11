@@ -295,7 +295,7 @@ function renderPaymentForm(mainCol) {
   mainCol.appendChild(section);
 }
 
-function renderTripTotal(sidebar, total) {
+function renderTripTotal(sidebar, total, config) {
   sidebar.innerHTML = '';
   const box = document.createElement('div');
   box.className = 'checkout-total-box';
